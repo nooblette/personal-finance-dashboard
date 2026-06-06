@@ -6,7 +6,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -173,6 +172,11 @@ export default function App() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, amount]) => ({ month, amount }));
   }, [data.variableExpenses]);
+
+  const variableMonthlyAverage = variableByMonth.length
+    ? Math.round(variableByMonth.reduce((sum, item) => sum + item.amount, 0) / variableByMonth.length)
+    : 0;
+  const variableMonthlyMax = variableByMonth.reduce((max, item) => Math.max(max, item.amount), 0);
 
   const exceptionStats = useMemo(() => {
     const empty = () => ({ 병원: 0, 경조사: 0, 의류: 0, 여행: 0 });
@@ -387,37 +391,63 @@ export default function App() {
               <Delete onClick={() => patch("variableExpenses", data.variableExpenses.filter((row) => row.id !== item.id))} />,
             ])}
           />
-          <ChartBox>
-            <AreaChart data={variableByMonth}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `${Number(value) / 10000}만`} width={58} />
-              <Tooltip formatter={(value) => won(Number(value))} />
-              <Area type="monotone" dataKey="amount" name="월별 변동 지출" stroke="#0f766e" fill="#99f6e4" />
-            </AreaChart>
-          </ChartBox>
-
-          <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-6 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold">예외 지출 통계</h3>
-                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">병원/경조사/의류/여행 변동 지출 합계</p>
+                <h3 className="text-sm font-bold tracking-tight">월별 변동 지출 추이</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">평균 {won(variableMonthlyAverage)} · 최대 {won(variableMonthlyMax)}</p>
+              </div>
+            </div>
+            <ChartBox>
+              <AreaChart data={variableByMonth} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="varGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
+                <XAxis dataKey="month" tickFormatter={formatMonthLabel} tickLine={false} axisLine={false} tick={chartTick} />
+                <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
+                <Tooltip content={<MoneyTooltip labelFormatter={formatMonthLabel} />} cursor={{ stroke: "#14b8a6", strokeOpacity: 0.2, strokeWidth: 1.5 }} />
+                <Area type="monotone" dataKey="amount" name="변동 지출" stroke="#14b8a6" strokeWidth={2.5} fill="url(#varGrad)" dot={{ r: 3, fill: "#14b8a6", strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }} />
+              </AreaChart>
+            </ChartBox>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold tracking-tight">예외 지출 통계</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">병원·경조사·의류·여행 카테고리 누적</p>
               </div>
               <PeriodTabs value={data.analysisPeriod} onChange={(value) => patch("analysisPeriod", value)} />
             </div>
-            <ChartBox tall>
-              <BarChart data={exceptionStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis tickFormatter={(value) => `${Number(value) / 10000}만`} width={58} />
-                <Tooltip formatter={(value) => won(Number(value))} />
-                <Legend />
-                <Bar dataKey="병원" stackId="a" fill="#14b8a6" />
-                <Bar dataKey="경조사" stackId="a" fill="#f59e0b" />
-                <Bar dataKey="의류" stackId="a" fill="#6366f1" />
-                <Bar dataKey="여행" stackId="a" fill="#ef4444" />
-              </BarChart>
-            </ChartBox>
+            <CategoryLegend categories={exceptionLegend} />
+            {exceptionStats.length === 0 ? (
+              <p className="mt-6 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">아직 예외 지출 기록이 없습니다.</p>
+            ) : (
+              <ChartBox tall>
+                <BarChart data={exceptionStats} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barSize={28}>
+                  <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
+                  <XAxis dataKey="period" tickFormatter={(value) => formatPeriodLabel(value, data.analysisPeriod)} tickLine={false} axisLine={false} tick={chartTick} />
+                  <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
+                  <Tooltip content={<MoneyTooltip labelFormatter={(value) => formatPeriodLabel(String(value), data.analysisPeriod)} />} cursor={{ fill: "currentColor", fillOpacity: 0.04 }} />
+                  {exceptionLegend.map((item, index) => {
+                    const isLast = index === exceptionLegend.length - 1;
+                    return (
+                      <Bar
+                        key={item.key}
+                        dataKey={item.key}
+                        stackId="a"
+                        fill={item.color}
+                        radius={isLast ? [8, 8, 0, 0] : 0}
+                      />
+                    );
+                  })}
+                </BarChart>
+              </ChartBox>
+            )}
           </div>
         </Section>
 
@@ -913,10 +943,81 @@ function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
 
 function ChartBox({ children, tall = false }: { children: ReactElement; tall?: boolean }) {
   return (
-    <div className={`mt-5 ${tall ? "h-80" : "h-64"}`}>
+    <div className={`mt-4 ${tall ? "h-72 sm:h-80" : "h-56 sm:h-64"}`}>
       <ResponsiveContainer width="100%" height="100%">
         {children}
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+const chartTick = { fill: "currentColor", fontSize: 11, opacity: 0.7 } as const;
+
+const exceptionLegend = [
+  { key: "병원", color: "#14b8a6" },
+  { key: "경조사", color: "#f59e0b" },
+  { key: "의류", color: "#6366f1" },
+  { key: "여행", color: "#ef4444" },
+] as const;
+
+function formatWonAxis(value: number | string) {
+  const n = Number(value);
+  if (!n) return "0";
+  if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`;
+  if (n >= 10000) return `${Math.round(n / 10000)}만`;
+  return format.format(n);
+}
+
+function formatMonthLabel(value: string) {
+  const match = /^(\d{4})-(\d{2})/.exec(value);
+  if (!match) return value;
+  return `${Number(match[2])}월`;
+}
+
+function formatPeriodLabel(value: string, period: Period) {
+  if (period === "yearly") return `${value}년`;
+  return formatMonthLabel(value);
+}
+
+function CategoryLegend({ categories }: { categories: ReadonlyArray<{ key: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {categories.map((item) => (
+        <span key={item.key} className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-700">
+          <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+          {item.key}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+type TooltipPayload = { name?: string; value?: number | string; color?: string; dataKey?: string | number };
+
+function MoneyTooltip({ active, payload, label, labelFormatter }: { active?: boolean; payload?: TooltipPayload[]; label?: string | number; labelFormatter?: (value: string) => string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const visible = payload.filter((entry) => Number(entry.value) > 0);
+  if (visible.length === 0) return null;
+  const total = visible.reduce((sum, entry) => sum + Number(entry.value ?? 0), 0);
+  const labelText = labelFormatter && typeof label === "string" ? labelFormatter(label) : String(label ?? "");
+  return (
+    <div className="rounded-xl bg-white p-3 text-xs shadow-lg ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-700">
+      <p className="font-semibold text-zinc-900 dark:text-zinc-50">{labelText}</p>
+      <div className="mt-2 flex flex-col gap-1">
+        {visible.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: entry.color }} />
+            <span className="text-zinc-500 dark:text-zinc-400">{entry.name}</span>
+            <span className="ml-auto font-medium tabular-nums text-zinc-900 dark:text-zinc-50">{won(Number(entry.value ?? 0))}</span>
+          </div>
+        ))}
+      </div>
+      {visible.length > 1 && (
+        <div className="mt-2 flex items-center justify-between border-t border-zinc-200 pt-1.5 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+          <span className="text-zinc-500 dark:text-zinc-400">합계</span>
+          <span className="font-semibold tabular-nums">{won(total)}</span>
+        </div>
+      )}
     </div>
   );
 }
