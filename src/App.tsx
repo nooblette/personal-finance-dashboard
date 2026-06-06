@@ -1,4 +1,4 @@
-import { PointerEvent, ReactElement, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { PointerEvent, ReactElement, ReactNode, WheelEvent as ReactWheelEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Area,
@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clipboard, Moon, Plus, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2 } from "lucide-react";
 
 type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -524,32 +524,47 @@ function flowKey(scope: string, id: string) {
   return `${scope}:${id}`;
 }
 
+type Viewport = { scale: number; x: number; y: number };
+const minScale = 0.4;
+const maxScale = 2.5;
+const initialViewport: Viewport = { scale: 1, x: 0, y: 0 };
+
 function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edges: FlowEdge[]; onMove: (nodeId: string, position: FlowPosition) => void; action?: ReactNode }) {
   const readOnly = useReadOnly();
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const panRef = useRef<{ startX: number; startY: number; vx: number; vy: number } | null>(null);
+  const [viewport, setViewport] = useState<Viewport>(initialViewport);
+  const viewportRef = useRef<Viewport>(initialViewport);
+  viewportRef.current = viewport;
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
+  const toContentCoords = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const v = viewportRef.current;
+    return { x: (clientX - rect.left - v.x) / v.scale, y: (clientY - rect.top - v.y) / v.scale };
+  };
 
   const startDrag = (event: PointerEvent<HTMLButtonElement>, node: FlowNode) => {
     if (readOnly) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const coords = toContentCoords(event.clientX, event.clientY);
+    if (!coords) return;
+    event.stopPropagation();
     dragRef.current = {
       id: node.id,
-      offsetX: event.clientX - rect.left - node.x,
-      offsetY: event.clientY - rect.top - node.y,
+      offsetX: coords.x - node.x,
+      offsetY: coords.y - node.y,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const moveDrag = (event: PointerEvent<HTMLButtonElement>) => {
     const drag = dragRef.current;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!drag || !rect) return;
-    onMove(drag.id, {
-      x: clamp(event.clientX - rect.left - drag.offsetX, 12, Math.max(12, rect.width - 192)),
-      y: clamp(event.clientY - rect.top - drag.offsetY, 12, 308),
-    });
+    if (!drag) return;
+    const coords = toContentCoords(event.clientX, event.clientY);
+    if (!coords) return;
+    onMove(drag.id, { x: coords.x - drag.offsetX, y: coords.y - drag.offsetY });
   };
 
   const stopDrag = (event: PointerEvent<HTMLButtonElement>) => {
@@ -557,58 +572,124 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
+  const startPan = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    panRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      vx: viewportRef.current.x,
+      vy: viewportRef.current.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const movePan = (event: PointerEvent<HTMLDivElement>) => {
+    const pan = panRef.current;
+    if (!pan) return;
+    setViewport((current) => ({ ...current, x: pan.vx + (event.clientX - pan.startX), y: pan.vy + (event.clientY - pan.startY) }));
+  };
+
+  const stopPan = (event: PointerEvent<HTMLDivElement>) => {
+    panRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const zoomBy = (factor: number, anchorClientX?: number, anchorClientY?: number) => {
+    setViewport((current) => {
+      const nextScale = clamp(current.scale * factor, minScale, maxScale);
+      if (nextScale === current.scale) return current;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      const cx = anchorClientX !== undefined && rect ? anchorClientX - rect.left : (rect?.width ?? 0) / 2;
+      const cy = anchorClientY !== undefined && rect ? anchorClientY - rect.top : (rect?.height ?? 0) / 2;
+      const k = nextScale / current.scale;
+      return { scale: nextScale, x: cx - k * (cx - current.x), y: cy - k * (cy - current.y) };
+    });
+  };
+
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (!event.ctrlKey && !event.metaKey && Math.abs(event.deltaY) < 10) return;
+    event.preventDefault();
+    zoomBy(event.deltaY < 0 ? 1.1 : 0.9, event.clientX, event.clientY);
+  };
+
+  const resetView = () => setViewport(initialViewport);
+
   return (
     <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
-      {!readOnly && <div className="mb-3 flex justify-end">{action}</div>}
-      <div ref={canvasRef} className="relative h-[420px] overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-          <defs>
-            <marker id="arrow" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4">
-              <path d="M0,0 L8,4 L0,8 Z" fill="currentColor" />
-            </marker>
-          </defs>
-          {edges.map((edge) => {
-            const from = nodeMap.get(edge.from);
-            const to = nodeMap.get(edge.to);
-            if (!from || !to) return null;
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex h-9 items-center gap-0.5 rounded-md border border-zinc-200 bg-white p-0.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <button type="button" title="축소" aria-label="축소" className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800" onClick={() => zoomBy(0.9)}>
+            <Minus size={15} />
+          </button>
+          <span className="min-w-12 text-center text-xs font-medium tabular-nums text-zinc-600 dark:text-zinc-300">{Math.round(viewport.scale * 100)}%</span>
+          <button type="button" title="확대" aria-label="확대" className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800" onClick={() => zoomBy(1.1)}>
+            <Plus size={15} />
+          </button>
+          <button type="button" title="원래대로" aria-label="원래대로" className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800" onClick={resetView}>
+            <Maximize2 size={14} />
+          </button>
+        </div>
+        {!readOnly && action}
+      </div>
+      <div
+        ref={canvasRef}
+        className={`relative h-[420px] overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 ${panRef.current ? "cursor-grabbing" : "cursor-grab"}`}
+        onPointerDown={startPan}
+        onPointerMove={movePan}
+        onPointerUp={stopPan}
+        onPointerCancel={stopPan}
+        onWheel={onWheel}
+      >
+        <div className="absolute left-0 top-0 h-full w-full origin-top-left" style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}>
+          <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+            <defs>
+              <marker id="arrow" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4">
+                <path d="M0,0 L8,4 L0,8 Z" fill="currentColor" />
+              </marker>
+            </defs>
+            {edges.map((edge) => {
+              const from = nodeMap.get(edge.from);
+              const to = nodeMap.get(edge.to);
+              if (!from || !to) return null;
+              return (
+                <line
+                  key={`${edge.from}-${edge.to}`}
+                  x1={from.x + 180}
+                  y1={from.y + 42}
+                  x2={to.x}
+                  y2={to.y + 42}
+                  className="text-zinc-400 dark:text-zinc-500"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  markerEnd="url(#arrow)"
+                />
+              );
+            })}
+          </svg>
+          {nodes.map((node) => {
+            const style = brandStyle(node.brand);
             return (
-              <line
-                key={`${edge.from}-${edge.to}`}
-                x1={from.x + 180}
-                y1={from.y + 42}
-                x2={to.x}
-                y2={to.y + 42}
-                className="text-zinc-400 dark:text-zinc-500"
-                stroke="currentColor"
-                strokeWidth="2"
-                markerEnd="url(#arrow)"
-              />
+              <button
+                key={node.id}
+                type="button"
+                className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+                style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
+                onPointerDown={(event) => startDrag(event, node)}
+                onPointerMove={moveDrag}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tracking-tight ${style.bg} ${style.fg}`}>
+                  {style.label}
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-semibold">{node.title}</span>
+                  <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
+                </span>
+              </button>
             );
           })}
-        </svg>
-        {nodes.map((node) => {
-          const style = brandStyle(node.brand);
-          return (
-            <button
-              key={node.id}
-              type="button"
-              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)}`}
-              style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
-              onPointerDown={(event) => startDrag(event, node)}
-              onPointerMove={moveDrag}
-              onPointerUp={stopDrag}
-              onPointerCancel={stopDrag}
-            >
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tracking-tight ${style.bg} ${style.fg}`}>
-                {style.label}
-              </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-semibold">{node.title}</span>
-                <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
-              </span>
-            </button>
-          );
-        })}
+        </div>
       </div>
     </div>
   );
