@@ -1,4 +1,4 @@
-import { ChangeEvent, PointerEvent, ReactElement, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, PointerEvent, ReactElement, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Area,
@@ -44,6 +44,9 @@ type DashboardData = {
 };
 
 const STORAGE_KEY = "personal-finance-dashboard:v1";
+const ViewModeContext = createContext(false);
+const useReadOnly = () => useContext(ViewModeContext);
+type Mode = "view" | "edit";
 const expenseCategories: ExpenseCategory[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
 const exceptionCategories: ExpenseCategory[] = ["병원", "경조사", "의류", "여행"];
 const accountTypes: AccountType[] = ["급여통장", "생활비통장", "투자계좌", "비상금통장"];
@@ -103,8 +106,10 @@ function loadData() {
 
 export default function App() {
   const [data, setData] = useState<DashboardData>(loadData);
+  const [mode, setMode] = useState<Mode>("view");
   const [copyLabel, setCopyLabel] = useState("복사");
   const importInput = useRef<HTMLInputElement>(null);
+  const isView = mode === "view";
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -284,6 +289,7 @@ export default function App() {
   };
 
   return (
+    <ViewModeContext.Provider value={isView}>
     <main className="min-h-screen bg-zinc-50 text-zinc-950 transition-colors dark:bg-zinc-950 dark:text-zinc-50">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-zinc-800 lg:flex-row lg:items-center lg:justify-between">
@@ -291,7 +297,8 @@ export default function App() {
             <p className="text-sm font-medium text-teal-700 dark:text-teal-300">브라우저에만 저장되는 로컬 대시보드</p>
             <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">개인 재무 대시보드</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ModeTabs mode={mode} onChange={setMode} />
             <Button label="JSON 내보내기" icon={<Download size={17} />} onClick={exportJson} />
             <Button label="JSON 가져오기" icon={<Upload size={17} />} onClick={() => importInput.current?.click()} />
             <input ref={importInput} className="hidden" type="file" accept="application/json" onChange={importJson} />
@@ -307,12 +314,18 @@ export default function App() {
         </section>
 
         <Section title="1. 자산 운영 원칙">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <textarea className="field min-h-56 resize-y py-3" value={data.principles} onChange={(event) => patch("principles", event.target.value)} />
-            <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          {isView ? (
+            <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
               <ReactMarkdown>{data.principles}</ReactMarkdown>
             </div>
-          </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <textarea className="field min-h-56 resize-y py-3" value={data.principles} onChange={(event) => patch("principles", event.target.value)} />
+              <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <ReactMarkdown>{data.principles}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </Section>
 
         <Section title="2. 월 수입">
@@ -340,7 +353,7 @@ export default function App() {
           <Table
             columns={["날짜", "카테고리", "금액", "메모", ""]}
             rows={data.variableExpenses.map((item) => [
-              <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
+              isView ? <span className="block text-sm text-zinc-800 dark:text-zinc-100">{item.date}</span> : <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
               <Select value={item.category} options={expenseCategories} onChange={(value) => updateVariable(item.id, { category: value as ExpenseCategory })} />,
               <NumberBox value={item.amount} onChange={(value) => updateVariable(item.id, { amount: value })} />,
               <Text value={item.memo} onChange={(value) => updateVariable(item.id, { memo: value })} />,
@@ -449,6 +462,32 @@ export default function App() {
         </Section>
       </div>
     </main>
+    </ViewModeContext.Provider>
+  );
+}
+
+function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {
+  const items: { value: Mode; label: string }[] = [
+    { value: "view", label: "조회" },
+    { value: "edit", label: "편집" },
+  ];
+  return (
+    <div role="tablist" aria-label="모드" className="inline-flex h-10 rounded-md border border-zinc-200 bg-white p-0.5 text-sm font-medium shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      {items.map((item) => {
+        const active = mode === item.value;
+        return (
+          <button
+            key={item.value}
+            role="tab"
+            aria-selected={active}
+            className={`min-w-16 rounded px-3 transition ${active ? "bg-teal-700 text-white shadow-sm dark:bg-teal-500 dark:text-zinc-950" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"}`}
+            onClick={() => onChange(item.value)}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -457,11 +496,13 @@ function flowKey(scope: string, id: string) {
 }
 
 function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edges: FlowEdge[]; onMove: (nodeId: string, position: FlowPosition) => void; action?: ReactNode }) {
+  const readOnly = useReadOnly();
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
   const startDrag = (event: PointerEvent<HTMLButtonElement>, node: FlowNode) => {
+    if (readOnly) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     dragRef.current = {
@@ -489,7 +530,7 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
 
   return (
     <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="mb-3 flex justify-end">{action}</div>
+      {!readOnly && <div className="mb-3 flex justify-end">{action}</div>}
       <div ref={canvasRef} className="relative h-[420px] overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
           <defs>
@@ -548,11 +589,12 @@ function flowTone(tone: FlowNode["tone"]) {
 }
 
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  const readOnly = useReadOnly();
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{title}</h2>
-        {action}
+        {!readOnly && action}
       </div>
       {children}
     </section>
@@ -585,19 +627,30 @@ function tone(intent?: "good" | "warn") {
 }
 
 function Money({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  const readOnly = useReadOnly();
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-200">{label}</span>
-      <input className="field h-11" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
+      {readOnly ? (
+        <div className="flex h-11 items-center rounded-md border border-transparent bg-zinc-50 px-3 text-sm font-semibold dark:bg-zinc-950">{won(value)}</div>
+      ) : (
+        <input className="field h-11" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
+      )}
     </label>
   );
 }
 
 function Text({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block min-w-36 text-sm text-zinc-800 dark:text-zinc-100">{value || "-"}</span>;
   return <input className="field h-10 min-w-36" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function NumberBox({ value, onChange, suffix }: { value: number; onChange: (value: number) => void; suffix?: string }) {
+  const readOnly = useReadOnly();
+  if (readOnly) {
+    return <span className="block min-w-28 text-sm font-medium text-zinc-800 dark:text-zinc-100">{format.format(value)}{suffix ? ` ${suffix}` : ""}</span>;
+  }
   return (
     <div className="flex min-w-28 items-center gap-1">
       <input className="field h-10" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
@@ -607,6 +660,8 @@ function NumberBox({ value, onChange, suffix }: { value: number; onChange: (valu
 }
 
 function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block min-w-32 text-sm text-zinc-800 dark:text-zinc-100">{value}</span>;
   return (
     <select className="field h-10 min-w-32" value={value} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => <option key={option}>{option}</option>)}
@@ -624,6 +679,8 @@ function Button({ label, icon, onClick }: { label: string; icon: ReactNode; onCl
 }
 
 function Delete({ onClick }: { onClick: () => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return null;
   return (
     <button type="button" title="삭제" className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:border-zinc-800 dark:hover:bg-red-950" onClick={onClick}>
       <Trash2 size={16} />
