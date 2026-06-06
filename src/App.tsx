@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Clipboard, Maximize2, Minus, Moon, PiggyBank, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
 
 type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -316,12 +316,12 @@ export default function App() {
 
   return (
     <ViewModeContext.Provider value={isView}>
-    <main className="min-h-screen bg-zinc-50 text-zinc-950 transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-zinc-800 lg:flex-row lg:items-center lg:justify-between">
+    <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-teal-700 dark:text-teal-300">브라우저에만 저장되는 로컬 대시보드</p>
-            <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">개인 재무 대시보드</h1>
+            <p className="text-xs font-medium uppercase tracking-wider text-teal-700 dark:text-teal-300">브라우저에만 저장되는 로컬 대시보드</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">개인 재무 대시보드</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ModeTabs mode={mode} onChange={setMode} />
@@ -334,10 +334,10 @@ export default function App() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(data.sideIncome)}`} />
-          <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} />
-          <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" />
-          <Metric title="현금 부족분" value={won(cashGap)} detail={`목표 ${won(data.targetCash)}`} intent={cashGap > 0 ? "warn" : "good"} />
+          <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(data.sideIncome)}`} icon={<ArrowUpRight size={16} />} accent="teal" />
+          <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
+          <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
+          <Metric title="현금 부족분" value={won(cashGap)} detail={`목표 ${won(data.targetCash)}`} intent={cashGap > 0 ? "warn" : "good"} icon={<PiggyBank size={16} />} accent={cashGap > 0 ? "amber" : "emerald"} />
         </section>
 
         <Section title="1. 자산 운영 원칙">
@@ -735,9 +735,9 @@ function flowTone(tone: FlowNode["tone"]) {
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const readOnly = useReadOnly();
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{title}</h2>
+    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
         {!readOnly && action}
       </div>
       {children}
@@ -745,21 +745,39 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   );
 }
 
-function Metric({ title, value, detail, intent }: { title: string; value: string; detail: string; intent?: "good" | "warn" }) {
+type MetricAccent = "teal" | "rose" | "indigo" | "amber" | "emerald";
+
+function metricAccentClasses(accent: MetricAccent) {
+  const map: Record<MetricAccent, string> = {
+    teal: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    rose: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+    amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  };
+  return map[accent];
+}
+
+function Metric({ title, value, detail, intent, icon, accent = "teal" }: { title: string; value: string; detail: string; intent?: "good" | "warn"; icon?: ReactNode; accent?: MetricAccent }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{title}</p>
-      <p className={`mt-2 text-2xl font-semibold ${tone(intent)}`}>{value}</p>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{detail}</p>
+    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/70 transition hover:shadow-md dark:bg-zinc-900 dark:ring-zinc-800">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{title}</p>
+        {icon && (
+          <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${metricAccentClasses(accent)}`}>{icon}</span>
+        )}
+      </div>
+      <p className={`mt-3 text-2xl font-bold tabular-nums tracking-tight sm:text-[26px] ${tone(intent)}`}>{value}</p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{detail}</p>
     </div>
   );
 }
 
 function Readout({ label, value, intent }: { label: string; value: string; intent?: "good" | "warn" }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950">
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p className={`mt-1 text-base font-semibold ${tone(intent)}`}>{value}</p>
+    <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
+      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+      <p className={`mt-1 text-base font-bold tabular-nums ${tone(intent)}`}>{value}</p>
     </div>
   );
 }
@@ -815,7 +833,7 @@ function Select({ value, options, onChange }: { value: string; options: string[]
 
 function Button({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" title={label} className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800" onClick={onClick}>
+    <button type="button" title={label} className="inline-flex h-10 items-center gap-2 rounded-full bg-zinc-900 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white" onClick={onClick}>
       {icon}
       <span>{label}</span>
     </button>
@@ -851,14 +869,14 @@ function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            {columns.map((column) => <th key={column} className="px-2 py-2 font-medium">{column}</th>)}
+          <tr className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            {columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-2 py-2 align-middle">{cell}</td>)}
+            <tr key={rowIndex} className="border-t border-zinc-100 transition hover:bg-zinc-50/60 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
+              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2.5 align-middle">{cell}</td>)}
             </tr>
           ))}
         </tbody>
