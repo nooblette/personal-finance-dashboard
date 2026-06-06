@@ -317,20 +317,20 @@ export default function App() {
   return (
     <ViewModeContext.Provider value={isView}>
     <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-teal-700 dark:text-teal-300">브라우저에만 저장되는 로컬 대시보드</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">개인 재무 대시보드</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <ModeTabs mode={mode} onChange={setMode} />
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <header className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-teal-700 dark:text-teal-300 sm:text-xs">브라우저에만 저장되는 로컬 대시보드</p>
+              <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
+            </div>
             <IconToggle
               label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
               icon={data.darkMode ? <Sun size={16} /> : <Moon size={16} />}
               onClick={() => patch("darkMode", !data.darkMode)}
             />
           </div>
+          <ModeTabs mode={mode} onChange={setMode} />
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -527,7 +527,7 @@ function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => vo
     { value: "edit", label: "편집" },
   ];
   return (
-    <div role="tablist" aria-label="모드" className="inline-flex h-10 rounded-md border border-zinc-200 bg-white p-0.5 text-sm font-medium shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div role="tablist" aria-label="모드" className="grid h-11 w-full grid-cols-2 rounded-xl bg-white p-1 text-sm font-medium shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:inline-grid sm:w-auto sm:min-w-[200px]">
       {items.map((item) => {
         const active = mode === item.value;
         return (
@@ -535,7 +535,7 @@ function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => vo
             key={item.value}
             role="tab"
             aria-selected={active}
-            className={`min-w-16 rounded px-3 transition ${active ? "bg-teal-700 text-white shadow-sm dark:bg-teal-500 dark:text-zinc-950" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"}`}
+            className={`rounded-lg px-3 transition ${active ? "bg-zinc-900 text-white shadow dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"}`}
             onClick={() => onChange(item.value)}
           >
             {item.label}
@@ -659,7 +659,7 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
       </div>
       <div
         ref={canvasRef}
-        className={`relative h-[420px] overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 ${panRef.current ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`relative h-[320px] touch-none overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 sm:h-[420px] ${panRef.current ? "cursor-grabbing" : "cursor-grab"}`}
         onPointerDown={startPan}
         onPointerMove={movePan}
         onPointerUp={stopPan}
@@ -735,9 +735,9 @@ function flowTone(tone: FlowNode["tone"]) {
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const readOnly = useReadOnly();
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:p-5 lg:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
+        <h2 className="text-base font-bold tracking-tight sm:text-lg">{title}</h2>
         {!readOnly && action}
       </div>
       {children}
@@ -804,17 +804,17 @@ function Money({ label, value, onChange }: { label: string; value: number; onCha
 
 function Text({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
-  if (readOnly) return <span className="block min-w-36 text-sm text-zinc-800 dark:text-zinc-100">{value || "-"}</span>;
-  return <input className="field h-10 min-w-36" value={value} onChange={(event) => onChange(event.target.value)} />;
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-36">{value || "-"}</span>;
+  return <input className="field h-10 sm:min-w-36" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function NumberBox({ value, onChange, suffix }: { value: number; onChange: (value: number) => void; suffix?: string }) {
   const readOnly = useReadOnly();
   if (readOnly) {
-    return <span className="block min-w-28 text-sm font-medium text-zinc-800 dark:text-zinc-100">{format.format(value)}{suffix ? ` ${suffix}` : ""}</span>;
+    return <span className="block text-sm font-medium tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-28">{format.format(value)}{suffix ? ` ${suffix}` : ""}</span>;
   }
   return (
-    <div className="flex min-w-28 items-center gap-1">
+    <div className="flex items-center gap-1 sm:min-w-28">
       <input className="field h-10" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
       {suffix && <span className="text-sm text-zinc-500">{suffix}</span>}
     </div>
@@ -823,9 +823,9 @@ function NumberBox({ value, onChange, suffix }: { value: number; onChange: (valu
 
 function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
-  if (readOnly) return <span className="block min-w-32 text-sm text-zinc-800 dark:text-zinc-100">{value}</span>;
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value}</span>;
   return (
-    <select className="field h-10 min-w-32" value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className="field h-10 sm:min-w-32" value={value} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => <option key={option}>{option}</option>)}
     </select>
   );
@@ -865,23 +865,49 @@ function Delete({ onClick }: { onClick: () => void }) {
 }
 
 function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
+  const readOnly = useReadOnly();
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-        <thead>
-          <tr className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-t border-zinc-100 transition hover:bg-zinc-50/60 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
-              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2.5 align-middle">{cell}</td>)}
+    <>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              {columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex} className="border-t border-zinc-100 transition hover:bg-zinc-50/60 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
+                {row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2.5 align-middle">{cell}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-col gap-2 sm:hidden">
+        {rows.map((row, rowIndex) => {
+          const labeled = row
+            .map((cell, i) => ({ cell, label: columns[i] }))
+            .filter((entry) => entry.label);
+          const actions = row.filter((_, i) => !columns[i]);
+          return (
+            <div key={rowIndex} className="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200/70 dark:bg-zinc-950 dark:ring-zinc-800">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
+                {labeled.map((entry, i) => (
+                  <div key={i} className="contents">
+                    <dt className="self-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{entry.label}</dt>
+                    <dd className="min-w-0 self-center">{entry.cell}</dd>
+                  </div>
+                ))}
+              </dl>
+              {!readOnly && actions.length > 0 && (
+                <div className="mt-3 flex justify-end gap-2">{actions}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
