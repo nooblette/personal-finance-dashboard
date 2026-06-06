@@ -1,4 +1,4 @@
-import { ChangeEvent, PointerEvent, ReactElement, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { PointerEvent, ReactElement, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Area,
@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clipboard, Download, Moon, Plus, RefreshCw, Sun, Trash2, Upload } from "lucide-react";
+import { Clipboard, Moon, Plus, RefreshCw, Sun, Trash2 } from "lucide-react";
 
 type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -108,7 +108,6 @@ export default function App() {
   const [data, setData] = useState<DashboardData>(loadData);
   const [mode, setMode] = useState<Mode>("view");
   const [copyLabel, setCopyLabel] = useState("복사");
-  const importInput = useRef<HTMLInputElement>(null);
   const isView = mode === "view";
 
   useEffect(() => {
@@ -248,21 +247,6 @@ export default function App() {
   }, [data.cards, data.flowPositions]);
 
   const patch = <K extends keyof DashboardData>(key: K, value: DashboardData[K]) => setData((current) => ({ ...current, [key]: value }));
-  const exportJson = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "personal-finance-dashboard.json";
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
-  const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setData({ ...defaultData, ...(JSON.parse(await file.text()) as Partial<DashboardData>) });
-    event.target.value = "";
-  };
   const copyExecution = async () => {
     await navigator.clipboard.writeText(executionText);
     setCopyLabel("복사됨");
@@ -299,10 +283,11 @@ export default function App() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ModeTabs mode={mode} onChange={setMode} />
-            <Button label="JSON 내보내기" icon={<Download size={17} />} onClick={exportJson} />
-            <Button label="JSON 가져오기" icon={<Upload size={17} />} onClick={() => importInput.current?.click()} />
-            <input ref={importInput} className="hidden" type="file" accept="application/json" onChange={importJson} />
-            <Button label={data.darkMode ? "라이트모드" : "다크모드"} icon={data.darkMode ? <Sun size={17} /> : <Moon size={17} />} onClick={() => patch("darkMode", !data.darkMode)} />
+            <IconToggle
+              label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
+              icon={data.darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              onClick={() => patch("darkMode", !data.darkMode)}
+            />
           </div>
         </header>
 
@@ -674,6 +659,20 @@ function Button({ label, icon, onClick }: { label: string; icon: ReactNode; onCl
     <button type="button" title={label} className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium shadow-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800" onClick={onClick}>
       {icon}
       <span>{label}</span>
+    </button>
+  );
+}
+
+function IconToggle({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+      onClick={onClick}
+    >
+      {icon}
     </button>
   );
 }
