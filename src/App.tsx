@@ -16,7 +16,7 @@ import { Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2 } from 
 
 type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
-type Period = "monthly" | "quarterly" | "yearly";
+type Period = "monthly" | "yearly";
 
 type FixedExpense = { id: string; name: string; amount: number; paymentMethod: string };
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
@@ -134,10 +134,13 @@ const defaultData: DashboardData = {
   flowPositions: {},
 };
 
-function loadData() {
+function loadData(): DashboardData {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? ({ ...defaultData, ...JSON.parse(saved) } as DashboardData) : defaultData;
+    if (!saved) return defaultData;
+    const next = { ...defaultData, ...JSON.parse(saved) } as DashboardData;
+    if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
+    return next;
   } catch {
     return defaultData;
   }
@@ -177,12 +180,7 @@ export default function App() {
       .filter((item) => exceptionCategories.includes(item.category))
       .reduce<Record<string, ReturnType<typeof empty>>>((acc, item) => {
         const date = new Date(`${item.date}T00:00:00`);
-        const key =
-          data.analysisPeriod === "yearly"
-            ? `${date.getFullYear()}`
-            : data.analysisPeriod === "quarterly"
-              ? `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}`
-              : item.date.slice(0, 7);
+        const key = data.analysisPeriod === "yearly" ? `${date.getFullYear()}` : item.date.slice(0, 7);
         acc[key] = acc[key] || empty();
         acc[key][item.category as keyof ReturnType<typeof empty>] += item.amount;
         return acc;
@@ -398,6 +396,29 @@ export default function App() {
               <Area type="monotone" dataKey="amount" name="월별 변동 지출" stroke="#0f766e" fill="#99f6e4" />
             </AreaChart>
           </ChartBox>
+
+          <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">예외 지출 통계</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">병원/경조사/의류/여행 변동 지출 합계</p>
+              </div>
+              <PeriodTabs value={data.analysisPeriod} onChange={(value) => patch("analysisPeriod", value)} />
+            </div>
+            <ChartBox tall>
+              <BarChart data={exceptionStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="period" />
+                <YAxis tickFormatter={(value) => `${Number(value) / 10000}만`} width={58} />
+                <Tooltip formatter={(value) => won(Number(value))} />
+                <Legend />
+                <Bar dataKey="병원" stackId="a" fill="#14b8a6" />
+                <Bar dataKey="경조사" stackId="a" fill="#f59e0b" />
+                <Bar dataKey="의류" stackId="a" fill="#6366f1" />
+                <Bar dataKey="여행" stackId="a" fill="#ef4444" />
+              </BarChart>
+            </ChartBox>
+          </div>
         </Section>
 
         <Section title="5. 투자 배분" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
@@ -462,36 +483,41 @@ export default function App() {
           />
         </Section>
 
-        <Section title="8. 예외 지출 통계">
+        <Section title="8. 현금 운영">
           <div className="grid gap-3 md:grid-cols-3">
             <Money label="목표 현금" value={data.targetCash} onChange={(value) => patch("targetCash", value)} />
             <Money label="현재 현금" value={data.currentCash} onChange={(value) => patch("currentCash", value)} />
             <Readout label="부족 금액" value={won(cashGap)} intent={cashGap > 0 ? "warn" : "good"} />
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {(["monthly", "quarterly", "yearly"] as Period[]).map((period) => (
-              <button key={period} className={`rounded-md border px-3 py-2 text-sm font-medium ${data.analysisPeriod === period ? "border-teal-700 bg-teal-700 text-white" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"}`} onClick={() => patch("analysisPeriod", period)}>
-                {period === "monthly" ? "월간" : period === "quarterly" ? "분기" : "연간"}
-              </button>
-            ))}
-          </div>
-          <ChartBox tall>
-            <BarChart data={exceptionStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="period" />
-              <YAxis tickFormatter={(value) => `${Number(value) / 10000}만`} width={58} />
-              <Tooltip formatter={(value) => won(Number(value))} />
-              <Legend />
-              <Bar dataKey="병원" stackId="a" fill="#14b8a6" />
-              <Bar dataKey="경조사" stackId="a" fill="#f59e0b" />
-              <Bar dataKey="의류" stackId="a" fill="#6366f1" />
-              <Bar dataKey="여행" stackId="a" fill="#ef4444" />
-            </BarChart>
-          </ChartBox>
         </Section>
       </div>
     </main>
     </ViewModeContext.Provider>
+  );
+}
+
+function PeriodTabs({ value, onChange }: { value: Period; onChange: (value: Period) => void }) {
+  const items: { value: Period; label: string }[] = [
+    { value: "monthly", label: "월별" },
+    { value: "yearly", label: "연도별" },
+  ];
+  return (
+    <div role="tablist" aria-label="기간" className="inline-flex h-9 rounded-md border border-zinc-200 bg-white p-0.5 text-sm font-medium shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      {items.map((item) => {
+        const active = value === item.value;
+        return (
+          <button
+            key={item.value}
+            role="tab"
+            aria-selected={active}
+            className={`min-w-14 rounded px-3 transition ${active ? "bg-teal-700 text-white shadow-sm dark:bg-teal-500 dark:text-zinc-950" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"}`}
+            onClick={() => onChange(item.value)}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
