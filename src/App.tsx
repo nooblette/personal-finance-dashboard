@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
 
-type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
+type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
 type Period = "monthly" | "yearly";
 
@@ -35,6 +35,7 @@ type DashboardData = {
   investmentProducts: InvestmentProduct[];
   accounts: Account[];
   cards: Card[];
+  expenseCategories: string[];
   analysisPeriod: Period;
   darkMode: boolean;
   flowPositions: Record<string, FlowPosition>;
@@ -44,8 +45,8 @@ const STORAGE_KEY = "personal-finance-dashboard:v1";
 const ViewModeContext = createContext(false);
 const useReadOnly = () => useContext(ViewModeContext);
 type Mode = "view" | "edit";
-const expenseCategories: ExpenseCategory[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
-const exceptionCategories: ExpenseCategory[] = ["병원", "경조사", "의류", "여행"];
+const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
+const exceptionCategories: string[] = ["병원", "경조사", "의류", "여행"];
 const accountTypes: AccountType[] = ["급여통장", "생활비통장", "투자계좌", "비상금통장"];
 
 type BrandStyle = { label: string; bg: string; fg: string };
@@ -124,6 +125,7 @@ const defaultData: DashboardData = {
     { id: newId(), name: "현대카드 Zero", issuer: "현대카드", settlementAccount: "농협 급여통장" },
     { id: newId(), name: "삼성카드", issuer: "삼성카드", settlementAccount: "국민은행 생활비통장" },
   ],
+  expenseCategories: defaultExpenseCategories,
   analysisPeriod: "monthly",
   darkMode: false,
   flowPositions: {},
@@ -135,6 +137,9 @@ function loadData(): DashboardData {
     if (!saved) return defaultData;
     const next = { ...defaultData, ...JSON.parse(saved) } as DashboardData;
     if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
+    if (!Array.isArray(next.expenseCategories) || next.expenseCategories.length === 0) {
+      next.expenseCategories = defaultExpenseCategories;
+    }
     return next;
   } catch {
     return defaultData;
@@ -444,7 +449,7 @@ export default function App() {
             columns={["날짜", "카테고리", "금액", "메모", ""]}
             rows={data.variableExpenses.map((item) => [
               isView ? <span className="block text-sm text-zinc-800 dark:text-zinc-100">{item.date}</span> : <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
-              <Select value={item.category} options={expenseCategories} onChange={(value) => updateVariable(item.id, { category: value as ExpenseCategory })} />,
+              <CategorySelect value={item.category} options={data.expenseCategories} onChange={(value) => updateVariable(item.id, { category: value })} onAddCategory={(name) => patch("expenseCategories", Array.from(new Set([...data.expenseCategories, name])))} />,
               <NumberBox value={item.amount} onChange={(value) => updateVariable(item.id, { amount: value })} />,
               <Text value={item.memo} onChange={(value) => updateVariable(item.id, { memo: value })} />,
               <Delete onClick={() => patch("variableExpenses", data.variableExpenses.filter((row) => row.id !== item.id))} />,
@@ -954,6 +959,32 @@ function Select({ value, options, onChange }: { value: string; options: string[]
   return (
     <select className="field h-10 sm:min-w-32" value={value} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => <option key={option}>{option}</option>)}
+    </select>
+  );
+}
+
+const ADD_CATEGORY_VALUE = "__add_category__";
+function CategorySelect({ value, options, onChange, onAddCategory }: { value: string; options: string[]; onChange: (value: string) => void; onAddCategory: (name: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value}</span>;
+  return (
+    <select
+      className="field h-10 sm:min-w-32"
+      value={options.includes(value) ? value : ""}
+      onChange={(event) => {
+        if (event.target.value === ADD_CATEGORY_VALUE) {
+          const name = window.prompt("새 카테고리 이름")?.trim();
+          if (!name) return;
+          if (!options.includes(name)) onAddCategory(name);
+          onChange(name);
+          return;
+        }
+        onChange(event.target.value);
+      }}
+    >
+      {!options.includes(value) && value && <option value="">{value} (사용 중)</option>}
+      {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      <option value={ADD_CATEGORY_VALUE}>+ 새 카테고리 추가</option>
     </select>
   );
 }
