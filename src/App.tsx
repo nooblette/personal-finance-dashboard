@@ -252,84 +252,61 @@ export default function App() {
     return lines.join("\n").trim();
   }, [disposableIncome, investmentsByBroker]);
 
-  const accountFlow = useMemo(() => {
-    const salary = data.accounts.find((item) => item.type === "급여통장");
-    const living = data.accounts.find((item) => item.type === "생활비통장");
-    const investments = data.accounts.filter((item) => item.type === "투자계좌");
+  const expenseFlow = useMemo(() => {
     const position = (key: string, fallback: FlowPosition) => data.flowPositions[key] || fallback;
     const nodes: FlowNode[] = [];
     const edges: FlowEdge[] = [];
+    const salary = data.accounts.find((item) => item.type === "급여통장");
+    const living = data.accounts.find((item) => item.type === "생활비통장");
+    const investments = data.accounts.filter((item) => item.type === "투자계좌");
+    const others = data.accounts.filter((item) => item.type === "비상금통장");
+    const accountLabel = (item: Account) => `${item.bank} ${item.name}`.trim() || item.type;
 
     if (salary) {
       const key = flowKey("account", salary.id);
-      nodes.push({
-        id: key,
-        title: `${salary.bank} ${salary.name}`.trim() || "급여통장",
-        subtitle: salary.type,
-        tone: "teal",
-        brand: salary.bank,
-        ...position(key, { x: 28, y: 120 }),
-      });
+      nodes.push({ id: key, title: accountLabel(salary), subtitle: salary.type, tone: "teal", brand: salary.bank, ...position(key, { x: 28, y: 150 }) });
     }
     if (living) {
       const key = flowKey("account", living.id);
-      nodes.push({
-        id: key,
-        title: `${living.bank} ${living.name}`.trim() || "생활비통장",
-        subtitle: living.type,
-        tone: "indigo",
-        brand: living.bank,
-        ...position(key, { x: 300, y: 120 }),
-      });
+      nodes.push({ id: key, title: accountLabel(living), subtitle: living.type, tone: "indigo", brand: living.bank, ...position(key, { x: 300, y: 150 }) });
     }
     investments.forEach((item, index) => {
       const key = flowKey("account", item.id);
-      nodes.push({
-        id: key,
-        title: `${item.bank} ${item.name}`.trim() || "투자계좌",
-        subtitle: item.type,
-        tone: "amber",
-        brand: item.bank,
-        ...position(key, { x: 570, y: 40 + index * 110 }),
-      });
+      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "amber", brand: item.bank, ...position(key, { x: 570, y: 40 + index * 110 }) });
+    });
+    others.forEach((item, index) => {
+      const key = flowKey("account", item.id);
+      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "indigo", brand: item.bank, ...position(key, { x: 570, y: 380 + index * 110 }) });
     });
 
     if (salary && living) edges.push({ from: flowKey("account", salary.id), to: flowKey("account", living.id) });
     if (living) investments.forEach((item) => edges.push({ from: flowKey("account", living.id), to: flowKey("account", item.id) }));
-    return { nodes, edges };
-  }, [data.accounts, data.flowPositions]);
 
-  const cardFlow = useMemo(() => {
-    const position = (key: string, fallback: FlowPosition) => data.flowPositions[key] || fallback;
-    const nodes: FlowNode[] = [];
-    const edges: FlowEdge[] = [];
-    const settlementAccounts = Array.from(new Set(data.cards.map((card) => card.settlementAccount || "결제계좌")));
+    const matchAccount = (settlement: string) => {
+      const trimmed = settlement.trim();
+      if (!trimmed) return undefined;
+      return data.accounts.find((item) => {
+        const label = accountLabel(item);
+        return label === trimmed || label.includes(trimmed) || trimmed.includes(label) || trimmed.includes(item.bank) || trimmed.includes(item.name);
+      });
+    };
 
     data.cards.forEach((card, index) => {
-      const key = flowKey("card", card.id);
-      nodes.push({
-        id: key,
-        title: card.name || "카드",
-        subtitle: card.issuer || "카드사",
-        tone: "teal",
-        brand: card.issuer,
-        ...position(key, { x: 80 + (index % 2) * 240, y: 42 + Math.floor(index / 2) * 118 }),
-      });
-      edges.push({ from: key, to: flowKey("settlement", card.settlementAccount || "결제계좌") });
-    });
-    settlementAccounts.forEach((account, index) => {
-      const key = flowKey("settlement", account);
-      nodes.push({
-        id: key,
-        title: account,
-        subtitle: "결제계좌",
-        tone: "indigo",
-        brand: account,
-        ...position(key, { x: 570, y: 80 + index * 118 }),
-      });
+      const cardKey = flowKey("card", card.id);
+      nodes.push({ id: cardKey, title: card.name || "카드", subtitle: card.issuer || "카드사", tone: "zinc", brand: card.issuer, ...position(cardKey, { x: 28, y: 320 + index * 110 }) });
+      const matched = matchAccount(card.settlementAccount || "");
+      if (matched) {
+        edges.push({ from: cardKey, to: flowKey("account", matched.id) });
+      } else if (card.settlementAccount) {
+        const settleKey = flowKey("settlement", card.settlementAccount);
+        if (!nodes.find((node) => node.id === settleKey)) {
+          nodes.push({ id: settleKey, title: card.settlementAccount, subtitle: "결제계좌", tone: "zinc", brand: card.settlementAccount, ...position(settleKey, { x: 300, y: 320 + index * 110 }) });
+        }
+        edges.push({ from: cardKey, to: settleKey });
+      }
     });
     return { nodes, edges };
-  }, [data.cards, data.flowPositions]);
+  }, [data.accounts, data.cards, data.flowPositions]);
 
   const patch = <K extends keyof DashboardData>(key: K, value: DashboardData[K]) => setData((current) => ({ ...current, [key]: value }));
   const copyExecution = async () => {
@@ -557,41 +534,48 @@ export default function App() {
           </div>
         </Section>
 
-        <Section title="6. 계좌 흐름도" action={<Button label="계좌 추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />}>
-          <Table
-            columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
-            rows={data.accounts.map((item) => [
-              <Text value={item.bank} onChange={(value) => updateAccount(item.id, { bank: value })} />,
-              <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
-              <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
-              <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
-              <Delete onClick={() => patch("accounts", data.accounts.filter((row) => row.id !== item.id))} />,
-            ])}
-          />
+        <Section title="6. 지출 흐름도">
           <EditableFlow
-            nodes={accountFlow.nodes}
-            edges={accountFlow.edges}
+            nodes={expenseFlow.nodes}
+            edges={expenseFlow.edges}
             onMove={updateFlowPosition}
-            action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(accountFlow.nodes.map((node) => node.id))} />}
+            action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
           />
-        </Section>
-
-        <Section title="7. 카드 결제 흐름" action={<Button label="카드 추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />}>
-          <Table
-            columns={["카드명", "카드사", "결제계좌", ""]}
-            rows={data.cards.map((item) => [
-              <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
-              <Text value={item.issuer} onChange={(value) => updateCard(item.id, { issuer: value })} />,
-              <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
-              <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
-            ])}
-          />
-          <EditableFlow
-            nodes={cardFlow.nodes}
-            edges={cardFlow.edges}
-            onMove={updateFlowPosition}
-            action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(cardFlow.nodes.map((node) => node.id))} />}
-          />
+          {!isView && (
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold tracking-tight">계좌</h3>
+                  <Button label="계좌 추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
+                </div>
+                <Table
+                  columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
+                  rows={data.accounts.map((item) => [
+                    <Text value={item.bank} onChange={(value) => updateAccount(item.id, { bank: value })} />,
+                    <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
+                    <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
+                    <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
+                    <Delete onClick={() => patch("accounts", data.accounts.filter((row) => row.id !== item.id))} />,
+                  ])}
+                />
+              </div>
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold tracking-tight">카드</h3>
+                  <Button label="카드 추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
+                </div>
+                <Table
+                  columns={["카드명", "카드사", "결제계좌", ""]}
+                  rows={data.cards.map((item) => [
+                    <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
+                    <Text value={item.issuer} onChange={(value) => updateCard(item.id, { issuer: value })} />,
+                    <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
+                    <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
+                  ])}
+                />
+              </div>
+            </div>
+          )}
         </Section>
 
       </div>
