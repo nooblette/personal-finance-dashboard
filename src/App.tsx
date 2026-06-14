@@ -407,16 +407,18 @@ export default function App() {
             {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
           </div>
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
-          <Table
-            columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
-            rows={data.investmentProducts.map((item) => [
-              <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
-              <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
-              <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
-              <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
-              <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
-            ])}
-          />
+          {!isView && (
+            <Table
+              columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
+              rows={data.investmentProducts.map((item) => [
+                <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
+                <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
+                <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
+                <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
+                <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
+              ])}
+            />
+          )}
           {!isView && (
             <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="mb-3 flex items-center justify-between gap-2">
