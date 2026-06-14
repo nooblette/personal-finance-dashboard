@@ -6,6 +6,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -515,6 +518,7 @@ export default function App() {
             <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
             {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
           </div>
+          <PortfolioDonut products={data.investmentProducts} disposableIncome={disposableIncome} />
           <Table
             columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
             rows={data.investmentProducts.map((item) => [
@@ -1106,6 +1110,78 @@ function formatMonthLabel(value: string) {
 function formatPeriodLabel(value: string, period: Period) {
   if (period === "yearly") return `${value}년`;
   return formatMonthLabel(value);
+}
+
+const portfolioPalette = [
+  "#0d9488", "#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#8b5cf6", "#0ea5e9", "#f97316", "#ec4899", "#14b8a6",
+];
+
+function PortfolioDonut({ products, disposableIncome }: { products: InvestmentProduct[]; disposableIncome: number }) {
+  const data = products
+    .filter((item) => item.ratio > 0)
+    .map((item, index) => ({
+      name: item.destination || "미지정",
+      broker: item.broker,
+      value: item.ratio,
+      amount: disposableIncome * (item.ratio / 100),
+      color: portfolioPalette[index % portfolioPalette.length],
+    }));
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  if (data.length === 0) {
+    return (
+      <div className="mb-4 rounded-2xl bg-zinc-50/80 p-6 text-center text-sm text-zinc-500 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:text-zinc-400 dark:ring-zinc-800">
+        투자 항목과 비율을 입력하면 포트폴리오가 시각화됩니다.
+      </div>
+    );
+  }
+  return (
+    <div className="mb-5 grid gap-5 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5 lg:grid-cols-[260px_1fr] lg:items-center">
+      <div className="relative mx-auto h-[220px] w-[220px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" innerRadius={62} outerRadius={92} stroke="none" paddingAngle={1.5}>
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<DonutTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">총 배분</span>
+          <span className="mt-0.5 text-xl font-bold tabular-nums">{total}%</span>
+          <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{won(disposableIncome * (total / 100))}</span>
+        </div>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {data.map((item) => (
+          <li key={item.name} className="flex items-center gap-3 text-sm">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
+            <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
+            {item.broker && <span className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline">{item.broker}</span>}
+            <span className="tabular-nums text-xs text-zinc-500 dark:text-zinc-400">{item.value}%</span>
+            <span className="w-24 text-right font-semibold tabular-nums">{won(item.amount)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name: string; broker?: string; value: number; amount: number; color: string } }> }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0].payload;
+  if (!entry) return null;
+  return (
+    <div className="rounded-xl bg-white p-3 text-xs shadow-lg ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-700">
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
+        <span className="font-semibold">{entry.name}</span>
+      </div>
+      {entry.broker && <p className="mt-1 text-zinc-500 dark:text-zinc-400">{entry.broker}</p>}
+      <p className="mt-1 tabular-nums">{entry.value}% · {won(entry.amount)}</p>
+    </div>
+  );
 }
 
 function CategoryLegend({ categories }: { categories: ReadonlyArray<{ key: string; color: string }> }) {
