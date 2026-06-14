@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -152,6 +152,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("view");
   const [pendingMode, setPendingMode] = useState<Mode | null>(null);
   const [copyLabel, setCopyLabel] = useState("복사");
+  const [variableDetailOpen, setVariableDetailOpen] = useState(false);
   const isView = mode === "view";
   const data = isView ? savedData : draft;
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(savedData), [draft, savedData]);
@@ -444,17 +445,33 @@ export default function App() {
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
 
-        <Section title="4. 변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: "식비", amount: 0, memo: "" }])} />}>
-          <Table
-            columns={["날짜", "카테고리", "금액", "메모", ""]}
-            rows={data.variableExpenses.map((item) => [
-              isView ? <span className="block text-sm text-zinc-800 dark:text-zinc-100">{item.date}</span> : <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
-              <CategorySelect value={item.category} options={data.expenseCategories} onChange={(value) => updateVariable(item.id, { category: value })} onAddCategory={(name) => patch("expenseCategories", Array.from(new Set([...data.expenseCategories, name])))} />,
-              <NumberBox value={item.amount} onChange={(value) => updateVariable(item.id, { amount: value })} />,
-              <Text value={item.memo} onChange={(value) => updateVariable(item.id, { memo: value })} />,
-              <Delete onClick={() => patch("variableExpenses", data.variableExpenses.filter((row) => row.id !== item.id))} />,
-            ])}
-          />
+        <Section title="4. 변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
+            aria-expanded={variableDetailOpen}
+            onClick={() => setVariableDetailOpen((open) => !open)}
+          >
+            <span className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold">상세 내역</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">{data.variableExpenses.length}건</span>
+            </span>
+            <ChevronDown size={16} className={`text-zinc-500 transition dark:text-zinc-400 ${variableDetailOpen ? "rotate-180" : ""}`} />
+          </button>
+          {variableDetailOpen && (
+            <div className="mt-3">
+              <Table
+                columns={["날짜", "카테고리", "금액", "메모", ""]}
+                rows={data.variableExpenses.map((item) => [
+                  isView ? <span className="block text-sm text-zinc-800 dark:text-zinc-100">{item.date}</span> : <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
+                  <CategorySelect value={item.category} options={data.expenseCategories} onChange={(value) => updateVariable(item.id, { category: value })} onAddCategory={(name) => patch("expenseCategories", Array.from(new Set([...data.expenseCategories, name])))} />,
+                  <NumberBox value={item.amount} onChange={(value) => updateVariable(item.id, { amount: value })} />,
+                  <Text value={item.memo} onChange={(value) => updateVariable(item.id, { memo: value })} />,
+                  <Delete onClick={() => patch("variableExpenses", data.variableExpenses.filter((row) => row.id !== item.id))} />,
+                ])}
+              />
+            </div>
+          )}
           <div className="mt-6 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
