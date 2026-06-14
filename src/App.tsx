@@ -351,7 +351,7 @@ export default function App() {
   return (
     <ViewModeContext.Provider value={isView}>
     <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className={`mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${!isView ? "pb-24 sm:pb-28" : ""}`}>
         <header className="flex flex-col gap-3 sm:gap-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -622,6 +622,35 @@ export default function App() {
         </Section>
 
       </div>
+      {!isView && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/85">
+          <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
+            {isDirty ? (
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">미저장 변경</span>
+            ) : (
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">모든 변경이 저장됨</span>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex h-10 items-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                disabled={!isDirty}
+                onClick={discardDraft}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-10 items-center rounded-full bg-teal-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
+                disabled={!isDirty}
+                onClick={saveDraft}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {pendingMode !== null && (
         <UnsavedDialog
           onSave={() => resolvePending("save")}
