@@ -396,22 +396,77 @@ export default function App() {
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
-        <Section title="1. 자산 운영 원칙">
-          {isView ? (
-            <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-              <ReactMarkdown>{data.principles}</ReactMarkdown>
+        <Section title="1. 포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Readout label="가처분소득" value={won(disposableIncome)} />
+            <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
+            {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
+          </div>
+          <PortfolioDonut products={data.investmentProducts} disposableIncome={disposableIncome} />
+          <Table
+            columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
+            rows={data.investmentProducts.map((item) => [
+              <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
+              <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
+              <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
+              <span className="font-medium">{won(disposableIncome * (item.ratio / 100))}</span>,
+              <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
+            ])}
+          />
+          <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-base font-semibold">투자 실행</h3>
+              <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
             </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <textarea className="field min-h-56 resize-y py-3" value={data.principles} onChange={(event) => patch("principles", event.target.value)} />
-              <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <ReactMarkdown>{data.principles}</ReactMarkdown>
+            <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
+          </div>
+        </Section>
+
+        <Section title="2. 지출 흐름도">
+          <EditableFlow
+            nodes={expenseFlow.nodes}
+            edges={expenseFlow.edges}
+            onMove={updateFlowPosition}
+            action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
+          />
+          {!isView && (
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold tracking-tight">계좌</h3>
+                  <Button label="계좌 추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
+                </div>
+                <Table
+                  columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
+                  rows={data.accounts.map((item) => [
+                    <Text value={item.bank} onChange={(value) => updateAccount(item.id, { bank: value })} />,
+                    <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
+                    <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
+                    <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
+                    <Delete onClick={() => patch("accounts", data.accounts.filter((row) => row.id !== item.id))} />,
+                  ])}
+                />
+              </div>
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold tracking-tight">카드</h3>
+                  <Button label="카드 추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
+                </div>
+                <Table
+                  columns={["카드명", "카드사", "결제계좌", ""]}
+                  rows={data.cards.map((item) => [
+                    <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
+                    <Text value={item.issuer} onChange={(value) => updateCard(item.id, { issuer: value })} />,
+                    <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
+                    <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
+                  ])}
+                />
               </div>
             </div>
           )}
         </Section>
 
-        <Section title="2. 월 수입">
+        <Section title="3. 월 수입">
           <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
             <div className="flex flex-col gap-3">
               <Money label="월급" value={data.salary} onChange={(value) => patch("salary", value)} />
@@ -443,7 +498,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section title="3. 고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "" }])} />}>
+        <Section title="4. 고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "" }])} />}>
           <Table
             columns={["이름", "금액", "결제수단", ""]}
             rows={data.fixedExpenses.map((item) => [
@@ -456,7 +511,7 @@ export default function App() {
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
 
-        <Section title="4. 변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
+        <Section title="5. 변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
           <button
             type="button"
             className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
@@ -543,71 +598,16 @@ export default function App() {
           </div>
         </Section>
 
-        <Section title="5. 투자 배분" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <Readout label="가처분소득" value={won(disposableIncome)} />
-            <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
-            {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
-          </div>
-          <PortfolioDonut products={data.investmentProducts} disposableIncome={disposableIncome} />
-          <Table
-            columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
-            rows={data.investmentProducts.map((item) => [
-              <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
-              <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
-              <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
-              <span className="font-medium">{won(disposableIncome * (item.ratio / 100))}</span>,
-              <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
-            ])}
-          />
-          <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold">투자 실행</h3>
-              <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
+        <Section title="6. 자산 운영 원칙">
+          {isView ? (
+            <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+              <ReactMarkdown>{data.principles}</ReactMarkdown>
             </div>
-            <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
-          </div>
-        </Section>
-
-        <Section title="6. 지출 흐름도">
-          <EditableFlow
-            nodes={expenseFlow.nodes}
-            edges={expenseFlow.edges}
-            onMove={updateFlowPosition}
-            action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
-          />
-          {!isView && (
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <div>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">계좌</h3>
-                  <Button label="계좌 추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
-                </div>
-                <Table
-                  columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
-                  rows={data.accounts.map((item) => [
-                    <Text value={item.bank} onChange={(value) => updateAccount(item.id, { bank: value })} />,
-                    <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
-                    <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
-                    <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
-                    <Delete onClick={() => patch("accounts", data.accounts.filter((row) => row.id !== item.id))} />,
-                  ])}
-                />
-              </div>
-              <div>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">카드</h3>
-                  <Button label="카드 추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
-                </div>
-                <Table
-                  columns={["카드명", "카드사", "결제계좌", ""]}
-                  rows={data.cards.map((item) => [
-                    <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
-                    <Text value={item.issuer} onChange={(value) => updateCard(item.id, { issuer: value })} />,
-                    <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
-                    <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
-                  ])}
-                />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <textarea className="field min-h-56 resize-y py-3" value={data.principles} onChange={(event) => patch("principles", event.target.value)} />
+              <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <ReactMarkdown>{data.principles}</ReactMarkdown>
               </div>
             </div>
           )}
