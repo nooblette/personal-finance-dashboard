@@ -418,13 +418,15 @@ export default function App() {
               <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
             ])}
           />
-          <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold">투자 실행</h3>
-              <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
+          {!isView && (
+            <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-semibold">투자 실행</h3>
+                <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
+              </div>
+              <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
             </div>
-            <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
-          </div>
+          )}
         </Section>
 
         <Section title="2. 지출 흐름도">
