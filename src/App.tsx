@@ -1144,7 +1144,7 @@ function PortfolioDonut({ products, disposableIncome }: { products: InvestmentPr
                 <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<DonutTooltip />} />
+            <Tooltip content={<DonutTooltip />} wrapperStyle={{ zIndex: 50, outline: "none" }} allowEscapeViewBox={{ x: true, y: true }} />
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
@@ -1173,7 +1173,8 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   const entry = payload[0].payload;
   if (!entry) return null;
   return (
-    <div className="rounded-xl bg-white p-3 text-xs shadow-lg ring-1 ring-zinc-200/80 dark:bg-zinc-900 dark:ring-zinc-700">
+    <div className="relative z-50 rounded-xl border border-zinc-200 p-3 text-xs shadow-xl dark:border-zinc-700" style={{ backgroundColor: "var(--tooltip-bg, #ffffff)" }}>
+      <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-white dark:bg-zinc-900" />
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
         <span className="font-semibold">{entry.name}</span>
