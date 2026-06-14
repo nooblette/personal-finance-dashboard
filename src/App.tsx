@@ -39,6 +39,7 @@ type DashboardData = {
   investmentProducts: InvestmentProduct[];
   accounts: Account[];
   cards: Card[];
+  investmentBase: number | null;
   expenseCategories: string[];
   analysisPeriod: Period;
   darkMode: boolean;
@@ -129,6 +130,7 @@ const defaultData: DashboardData = {
     { id: newId(), name: "현대카드 Zero", issuer: "현대카드", settlementAccount: "농협 급여통장" },
     { id: newId(), name: "삼성카드", issuer: "삼성카드", settlementAccount: "국민은행 생활비통장" },
   ],
+  investmentBase: null,
   expenseCategories: defaultExpenseCategories,
   analysisPeriod: "monthly",
   darkMode: false,
@@ -149,6 +151,7 @@ function loadData(): DashboardData {
       const legacy = typeof parsed.sideIncome === "number" ? parsed.sideIncome : 0;
       next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
     }
+    if (next.investmentBase === undefined) next.investmentBase = null;
     return next;
   } catch {
     return defaultData;
@@ -207,6 +210,7 @@ export default function App() {
 
   const totalSideIncome = data.sideIncomes.reduce((sum, item) => sum + item.amount, 0);
   const totalIncome = data.salary + totalSideIncome;
+  const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0), 0);
   const totalFixed = data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0);
   const disposableIncome = totalIncome - totalFixed;
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
@@ -256,11 +260,11 @@ export default function App() {
     const lines = ["이번 달 투자", ""];
     Object.entries(investmentsByBroker).forEach(([broker, items]) => {
       lines.push(broker);
-      items.forEach((item) => lines.push(`- ${item.destination || "투자상품"} ${won(disposableIncome * (item.ratio / 100))}`));
+      items.forEach((item) => lines.push(`- ${item.destination || "투자상품"} ${won(investmentBaseAmount * (item.ratio / 100))}`));
       lines.push("");
     });
     return lines.join("\n").trim();
-  }, [disposableIncome, investmentsByBroker]);
+  }, [investmentBaseAmount, investmentsByBroker]);
 
   const expenseFlow = useMemo(() => {
     const position = (key: string, fallback: FlowPosition) => data.flowPositions[key] || fallback;
@@ -397,19 +401,20 @@ export default function App() {
         </section>
 
         <Section title="1. 포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
-          <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="mb-4 flex flex-wrap items-end gap-3">
             <Readout label="가처분소득" value={won(disposableIncome)} />
+            <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => patch("investmentBase", value)} />
             <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
             {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
           </div>
-          <PortfolioDonut products={data.investmentProducts} disposableIncome={disposableIncome} />
+          <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
           <Table
             columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
             rows={data.investmentProducts.map((item) => [
               <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
               <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
               <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
-              <span className="font-medium">{won(disposableIncome * (item.ratio / 100))}</span>,
+              <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
               <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
             ])}
           />
@@ -941,6 +946,46 @@ function Metric({ title, value, detail, intent, icon, accent = "teal" }: { title
   );
 }
 
+function InvestmentBaseControl({ value, fallback, onChange }: { value: number | null; fallback: number; onChange: (value: number | null) => void }) {
+  const readOnly = useReadOnly();
+  const isAuto = value === null;
+  const effective = isAuto ? fallback : value;
+  if (readOnly) {
+    return (
+      <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
+        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">투자 기준액 {isAuto && <span className="ml-1 rounded-full bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">자동</span>}</p>
+        <p className="mt-1 text-base font-bold tabular-nums">{won(effective)}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">투자 기준액</p>
+        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 dark:border-zinc-600 dark:bg-zinc-900"
+            checked={!isAuto}
+            onChange={(event) => onChange(event.target.checked ? fallback : null)}
+          />
+          직접 입력
+        </label>
+      </div>
+      {isAuto ? (
+        <p className="mt-1 text-base font-bold tabular-nums">{won(effective)} <span className="ml-1 text-xs font-normal text-zinc-500 dark:text-zinc-400">(가처분소득)</span></p>
+      ) : (
+        <input
+          className="field mt-1 h-9"
+          inputMode="numeric"
+          value={format.format(value ?? 0)}
+          onChange={(event) => onChange(toNumber(event.target.value))}
+        />
+      )}
+    </div>
+  );
+}
+
 function Readout({ label, value, intent }: { label: string; value: string; intent?: "good" | "warn" }) {
   return (
     <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
@@ -1147,14 +1192,14 @@ const portfolioPalette = [
   "#0d9488", "#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#8b5cf6", "#0ea5e9", "#f97316", "#ec4899", "#14b8a6",
 ];
 
-function PortfolioDonut({ products, disposableIncome }: { products: InvestmentProduct[]; disposableIncome: number }) {
+function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[]; baseAmount: number }) {
   const data = products
     .filter((item) => item.ratio > 0)
     .map((item, index) => ({
       name: item.destination || "미지정",
       broker: item.broker,
       value: item.ratio,
-      amount: disposableIncome * (item.ratio / 100),
+      amount: baseAmount * (item.ratio / 100),
       color: portfolioPalette[index % portfolioPalette.length],
     }));
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -1181,7 +1226,7 @@ function PortfolioDonut({ products, disposableIncome }: { products: InvestmentPr
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">총 배분</span>
           <span className="mt-0.5 text-xl font-bold tabular-nums">{total}%</span>
-          <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{won(disposableIncome * (total / 100))}</span>
+          <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{won(baseAmount * (total / 100))}</span>
         </div>
       </div>
       <ul className="flex flex-col gap-1.5">
