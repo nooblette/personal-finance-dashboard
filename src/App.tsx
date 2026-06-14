@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, Clipboard, Maximize2, Minus, Moon, PiggyBank, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
 
 type ExpenseCategory = "식비" | "병원" | "의류" | "여행" | "경조사" | "기타";
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -35,8 +35,6 @@ type DashboardData = {
   investmentProducts: InvestmentProduct[];
   accounts: Account[];
   cards: Card[];
-  targetCash: number;
-  currentCash: number;
   analysisPeriod: Period;
   darkMode: boolean;
   flowPositions: Record<string, FlowPosition>;
@@ -126,8 +124,6 @@ const defaultData: DashboardData = {
     { id: newId(), name: "현대카드 Zero", issuer: "현대카드", settlementAccount: "농협 급여통장" },
     { id: newId(), name: "삼성카드", issuer: "삼성카드", settlementAccount: "국민은행 생활비통장" },
   ],
-  targetCash: 5000000,
-  currentCash: 4300000,
   analysisPeriod: "monthly",
   darkMode: false,
   flowPositions: {},
@@ -198,7 +194,6 @@ export default function App() {
   const totalFixed = data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0);
   const disposableIncome = totalIncome - totalFixed;
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
-  const cashGap = Math.max(data.targetCash - data.currentCash, 0);
 
   const variableByMonth = useMemo(() => {
     const groups = data.variableExpenses.reduce<Record<string, number>>((acc, item) => {
@@ -402,11 +397,10 @@ export default function App() {
           </div>
         </header>
 
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-3">
           <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(data.sideIncome)}`} icon={<ArrowUpRight size={16} />} accent="teal" />
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
-          <Metric title="현금 부족분" value={won(cashGap)} detail={`목표 ${won(data.targetCash)}`} intent={cashGap > 0 ? "warn" : "good"} icon={<PiggyBank size={16} />} accent={cashGap > 0 ? "amber" : "emerald"} />
         </section>
 
         <Section title="1. 자산 운영 원칙">
@@ -578,13 +572,6 @@ export default function App() {
           />
         </Section>
 
-        <Section title="8. 현금 운영">
-          <div className="grid gap-3 md:grid-cols-3">
-            <Money label="목표 현금" value={data.targetCash} onChange={(value) => patch("targetCash", value)} />
-            <Money label="현재 현금" value={data.currentCash} onChange={(value) => patch("currentCash", value)} />
-            <Readout label="부족 금액" value={won(cashGap)} intent={cashGap > 0 ? "warn" : "good"} />
-          </div>
-        </Section>
       </div>
       {pendingMode !== null && (
         <UnsavedDialog
