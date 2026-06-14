@@ -402,7 +402,6 @@ export default function App() {
 
         <Section title="1. 포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
           <div className="mb-4 flex flex-wrap items-end gap-3">
-            <Readout label="가처분소득" value={won(disposableIncome)} />
             <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => patch("investmentBase", value)} />
             <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
             {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
