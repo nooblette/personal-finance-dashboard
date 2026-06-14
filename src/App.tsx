@@ -442,7 +442,7 @@ export default function App() {
               <div>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold tracking-tight">계좌</h3>
-                  <Button label="계좌 추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
+                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
                 </div>
                 <Table
                   columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
@@ -458,7 +458,7 @@ export default function App() {
               <div>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold tracking-tight">카드</h3>
-                  <Button label="카드 추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
+                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
                 </div>
                 <Table
                   columns={["카드명", "카드사", "결제계좌", ""]}
