@@ -439,7 +439,7 @@ export default function App() {
           />
           {!isView && (
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold tracking-tight">계좌</h3>
                   <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
@@ -455,7 +455,7 @@ export default function App() {
                   ])}
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold tracking-tight">카드</h3>
                   <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
@@ -476,11 +476,11 @@ export default function App() {
 
         <Section title="3. 월 수입">
           <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-            <div className="flex flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
               <Money label="월급" value={data.salary} onChange={(value) => patch("salary", value)} />
               <Readout label="총 수입" value={won(totalIncome)} />
             </div>
-            <div className="rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
+            <div className="min-w-0 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold tracking-tight">부수입 상세</h3>
@@ -940,7 +940,7 @@ function flowTone(tone: FlowNode["tone"]) {
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const readOnly = useReadOnly();
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:p-5 lg:p-6">
+    <section className="min-w-0 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:p-5 lg:p-6">
       <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
         <h2 className="text-base font-bold tracking-tight sm:text-lg">{title}</h2>
         {!readOnly && action}
