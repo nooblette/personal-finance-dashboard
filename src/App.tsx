@@ -22,6 +22,7 @@ type Period = "monthly" | "yearly";
 
 type FixedExpense = { id: string; name: string; amount: number; paymentMethod: string };
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
+type SideIncome = { id: string; name: string; amount: number };
 type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number };
 type Account = { id: string; bank: string; name: string; number: string; type: AccountType };
 type Card = { id: string; name: string; issuer: string; settlementAccount: string };
@@ -32,7 +33,7 @@ type FlowEdge = { from: string; to: string };
 type DashboardData = {
   principles: string;
   salary: number;
-  sideIncome: number;
+  sideIncomes: SideIncome[];
   fixedExpenses: FixedExpense[];
   variableExpenses: VariableExpense[];
   investmentProducts: InvestmentProduct[];
@@ -98,7 +99,7 @@ const toNumber = (value: string) => Number(value.replace(/,/g, "")) || 0;
 const defaultData: DashboardData = {
   principles: "- 현금 500만원 유지\n- 병원비는 현금 사용\n- 경조사비는 현금 사용\n- 여행비는 현금 사용\n- 익월 급여일에 현금 복구",
   salary: 4200000,
-  sideIncome: 300000,
+  sideIncomes: [{ id: newId(), name: "부수입", amount: 300000 }],
   fixedExpenses: [
     { id: newId(), name: "월세", amount: 800000, paymentMethod: "계좌이체" },
     { id: newId(), name: "통신비", amount: 80000, paymentMethod: "카드" },
@@ -138,10 +139,15 @@ function loadData(): DashboardData {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return defaultData;
-    const next = { ...defaultData, ...JSON.parse(saved) } as DashboardData;
+    const parsed = JSON.parse(saved) as Partial<DashboardData> & { sideIncome?: number };
+    const next = { ...defaultData, ...parsed } as DashboardData;
     if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
     if (!Array.isArray(next.expenseCategories) || next.expenseCategories.length === 0) {
       next.expenseCategories = defaultExpenseCategories;
+    }
+    if (!Array.isArray(next.sideIncomes)) {
+      const legacy = typeof parsed.sideIncome === "number" ? parsed.sideIncome : 0;
+      next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
     }
     return next;
   } catch {
@@ -199,7 +205,8 @@ export default function App() {
     setPendingMode(null);
   };
 
-  const totalIncome = data.salary + data.sideIncome;
+  const totalSideIncome = data.sideIncomes.reduce((sum, item) => sum + item.amount, 0);
+  const totalIncome = data.salary + totalSideIncome;
   const totalFixed = data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0);
   const disposableIncome = totalIncome - totalFixed;
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
@@ -384,7 +391,7 @@ export default function App() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
-          <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(data.sideIncome)}`} icon={<ArrowUpRight size={16} />} accent="teal" />
+          <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(totalSideIncome)}`} icon={<ArrowUpRight size={16} />} accent="teal" />
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
@@ -405,10 +412,34 @@ export default function App() {
         </Section>
 
         <Section title="2. 월 수입">
-          <div className="grid gap-3 md:grid-cols-3">
-            <Money label="월급" value={data.salary} onChange={(value) => patch("salary", value)} />
-            <Money label="부수입" value={data.sideIncome} onChange={(value) => patch("sideIncome", value)} />
-            <Readout label="총 수입" value={won(totalIncome)} />
+          <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
+            <div className="flex flex-col gap-3">
+              <Money label="월급" value={data.salary} onChange={(value) => patch("salary", value)} />
+              <Readout label="총 수입" value={won(totalIncome)} />
+            </div>
+            <div className="rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold tracking-tight">부수입 상세</h3>
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{data.sideIncomes.length}건 · 합계 {won(totalSideIncome)}</p>
+                </div>
+                {!isView && (
+                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("sideIncomes", [...data.sideIncomes, { id: newId(), name: "", amount: 0 }])} />
+                )}
+              </div>
+              {data.sideIncomes.length === 0 ? (
+                <p className="py-3 text-center text-sm text-zinc-500 dark:text-zinc-400">부수입 항목이 없습니다.</p>
+              ) : (
+                <Table
+                  columns={["출처", "금액", ""]}
+                  rows={data.sideIncomes.map((item) => [
+                    <Text value={item.name} onChange={(value) => patch("sideIncomes", data.sideIncomes.map((row) => (row.id === item.id ? { ...row, name: value } : row)))} />,
+                    <NumberBox value={item.amount} onChange={(value) => patch("sideIncomes", data.sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: value } : row)))} />,
+                    <Delete onClick={() => patch("sideIncomes", data.sideIncomes.filter((row) => row.id !== item.id))} />,
+                  ])}
+                />
+              )}
+            </div>
           </div>
         </Section>
 
