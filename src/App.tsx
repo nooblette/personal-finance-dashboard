@@ -20,7 +20,17 @@ type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
 type Period = "monthly" | "yearly";
 
-type FixedExpense = { id: string; name: string; amount: number; paymentMethod: string };
+type FixedExpense = {
+  id: string;
+  name: string;
+  amount: number;
+  paymentMethod: string;
+  bank?: string;
+  account?: string;
+  cardIssuer?: string;
+  cardName?: string;
+};
+type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
 type SideIncome = { id: string; name: string; amount: number };
 type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number };
@@ -51,6 +61,13 @@ const ViewModeContext = createContext(false);
 const useReadOnly = () => useContext(ViewModeContext);
 type Mode = "view" | "edit";
 const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
+const paymentMethodOptions: string[] = ["카드", "계좌이체", "자동이체", "현금", "기타"];
+
+function paymentKind(method: string): PaymentKind {
+  if (method.includes("카드")) return "card";
+  if (method.includes("이체")) return "transfer";
+  return "other";
+}
 const exceptionCategories: string[] = ["병원", "경조사", "의류", "여행"];
 const accountTypes: AccountType[] = ["급여통장", "생활비통장", "투자계좌", "비상금통장"];
 
@@ -481,15 +498,32 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "" }])} />}>
+        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드" }])} />}>
           <Table
-            columns={["이름", "금액", "결제수단", ""]}
-            rows={data.fixedExpenses.map((item) => [
-              <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
-              <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
-              <Text value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
-              <Delete onClick={() => patch("fixedExpenses", data.fixedExpenses.filter((row) => row.id !== item.id))} />,
-            ])}
+            columns={["이름", "금액", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
+            rows={data.fixedExpenses.map((item) => {
+              const kind = paymentKind(item.paymentMethod);
+              return [
+                <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
+                <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
+                <PaymentMethodSelect value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
+                <PaymentDetailField
+                  kind={kind}
+                  cardValue={item.cardIssuer ?? ""}
+                  transferValue={item.bank ?? ""}
+                  onCardChange={(value) => updateFixed(item.id, { cardIssuer: value })}
+                  onTransferChange={(value) => updateFixed(item.id, { bank: value })}
+                />,
+                <PaymentDetailField
+                  kind={kind}
+                  cardValue={item.cardName ?? ""}
+                  transferValue={item.account ?? ""}
+                  onCardChange={(value) => updateFixed(item.id, { cardName: value })}
+                  onTransferChange={(value) => updateFixed(item.id, { account: value })}
+                />,
+                <Delete onClick={() => patch("fixedExpenses", data.fixedExpenses.filter((row) => row.id !== item.id))} />,
+              ];
+            })}
           />
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
@@ -1120,6 +1154,43 @@ function NumberBox({ value, onChange, suffix }: { value: number; onChange: (valu
       {suffix && <span className="text-sm text-zinc-500">{suffix}</span>}
     </div>
   );
+}
+
+function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-24">{value || "-"}</span>;
+  const hasCustom = value && !paymentMethodOptions.includes(value);
+  return (
+    <select className="field h-10 sm:min-w-24" value={value} onChange={(event) => onChange(event.target.value)}>
+      {!value && <option value="">선택</option>}
+      {hasCustom && <option value={value}>{value}</option>}
+      {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+    </select>
+  );
+}
+
+function PaymentDetailField({
+  kind,
+  cardValue,
+  transferValue,
+  onCardChange,
+  onTransferChange,
+}: {
+  kind: PaymentKind;
+  cardValue: string;
+  transferValue: string;
+  onCardChange: (value: string) => void;
+  onTransferChange: (value: string) => void;
+}) {
+  const readOnly = useReadOnly();
+  if (kind === "other") {
+    if (readOnly) return <span className="block text-sm text-zinc-400 dark:text-zinc-500 sm:min-w-32">-</span>;
+    return <span className="block text-sm text-zinc-400 dark:text-zinc-500 sm:min-w-32">해당 없음</span>;
+  }
+  const value = kind === "card" ? cardValue : transferValue;
+  const onChange = kind === "card" ? onCardChange : onTransferChange;
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value || "-"}</span>;
+  return <input className="field h-10 sm:min-w-32" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
