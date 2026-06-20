@@ -395,7 +395,14 @@ export default function App() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-3">
-          <Metric title="총 월 수입" value={won(totalIncome)} detail={`월급 ${won(data.salary)} + 부수입 ${won(totalSideIncome)}`} icon={<ArrowUpRight size={16} />} accent="teal" />
+          <IncomeMetric
+            salary={data.salary}
+            sideIncomes={data.sideIncomes}
+            totalIncome={totalIncome}
+            totalSideIncome={totalSideIncome}
+            onSalaryChange={(value) => patch("salary", value)}
+            onSideIncomesChange={(rows) => patch("sideIncomes", rows)}
+          />
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
@@ -942,6 +949,87 @@ function Metric({ title, value, detail, intent, icon, accent = "teal" }: { title
       </div>
       <p className={`mt-3 text-2xl font-bold tabular-nums tracking-tight sm:text-[26px] ${tone(intent)}`}>{value}</p>
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{detail}</p>
+    </div>
+  );
+}
+
+function IncomeMetric({
+  salary,
+  sideIncomes,
+  totalIncome,
+  totalSideIncome,
+  onSalaryChange,
+  onSideIncomesChange,
+}: {
+  salary: number;
+  sideIncomes: SideIncome[];
+  totalIncome: number;
+  totalSideIncome: number;
+  onSalaryChange: (value: number) => void;
+  onSideIncomesChange: (rows: SideIncome[]) => void;
+}) {
+  const readOnly = useReadOnly();
+  if (readOnly) {
+    return (
+      <Metric
+        title="총 월 수입"
+        value={won(totalIncome)}
+        detail={`월급 ${won(salary)} + 부수입 ${won(totalSideIncome)}`}
+        icon={<ArrowUpRight size={16} />}
+        accent="teal"
+      />
+    );
+  }
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-200/70 transition hover:shadow-md dark:bg-zinc-900 dark:ring-zinc-800">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">총 월 수입</p>
+        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${metricAccentClasses("teal")}`}><ArrowUpRight size={16} /></span>
+      </div>
+      <p className="mt-3 text-2xl font-bold tabular-nums tracking-tight sm:text-[26px]">{won(totalIncome)}</p>
+      <div className="mt-3 flex flex-col gap-1.5">
+        <label className="flex items-center gap-2 text-xs">
+          <span className="w-12 shrink-0 text-zinc-500 dark:text-zinc-400">월급</span>
+          <input
+            className="field h-9 flex-1 min-w-0"
+            inputMode="numeric"
+            value={format.format(salary)}
+            onChange={(event) => onSalaryChange(toNumber(event.target.value))}
+          />
+        </label>
+        {sideIncomes.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 text-xs">
+            <input
+              className="field h-9 w-12 shrink-0 truncate text-zinc-500 dark:text-zinc-400"
+              placeholder="부수입"
+              value={item.name}
+              onChange={(event) => onSideIncomesChange(sideIncomes.map((row) => (row.id === item.id ? { ...row, name: event.target.value } : row)))}
+            />
+            <input
+              className="field h-9 flex-1 min-w-0"
+              inputMode="numeric"
+              value={format.format(item.amount)}
+              onChange={(event) => onSideIncomesChange(sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: toNumber(event.target.value) } : row)))}
+            />
+            <button
+              type="button"
+              title="삭제"
+              aria-label="부수입 삭제"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+              onClick={() => onSideIncomesChange(sideIncomes.filter((row) => row.id !== item.id))}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="self-start text-xs font-medium text-teal-700 transition hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
+          onClick={() => onSideIncomesChange([...sideIncomes, { id: newId(), name: "", amount: 0 }])}
+        >
+          + 부수입 추가
+        </button>
+      </div>
     </div>
   );
 }
