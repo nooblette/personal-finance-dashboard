@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
-import { BrandIcon, BrandKind } from "./brandLibrary";
+import { BrandIcon, BrandKind, BrandLabel, BrandSelect } from "./brandLibrary";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -398,7 +398,7 @@ export default function App() {
               columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
               rows={data.investmentProducts.map((item) => [
                 <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
-                <Text value={item.broker} onChange={(value) => updateInvestment(item.id, { broker: value })} />,
+                <BrandField value={item.broker} kind="sec" onChange={(value) => updateInvestment(item.id, { broker: value })} />,
                 <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
                 <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
                 <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
@@ -431,9 +431,9 @@ export default function App() {
                   <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
                 </div>
                 <Table
-                  columns={["은행명", "계좌명", "계좌번호", "유형", ""]}
+                  columns={["은행/증권사", "계좌명", "계좌번호", "유형", ""]}
                   rows={data.accounts.map((item) => [
-                    <Text value={item.bank} onChange={(value) => updateAccount(item.id, { bank: value })} />,
+                    <BrandField value={item.bank} kind={item.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => updateAccount(item.id, { bank: value })} />,
                     <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
                     <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
                     <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
@@ -450,7 +450,7 @@ export default function App() {
                   columns={["카드명", "카드사", "결제계좌", ""]}
                   rows={data.cards.map((item) => [
                     <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
-                    <Text value={item.issuer} onChange={(value) => updateCard(item.id, { issuer: value })} />,
+                    <BrandField value={item.issuer} kind="card" onChange={(value) => updateCard(item.id, { issuer: value })} />,
                     <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
                     <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
                   ])}
@@ -469,7 +469,7 @@ export default function App() {
                 <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
                 <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
                 <PaymentMethodSelect value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
-                <PaymentDetailField
+                <PaymentBrandField
                   kind={kind}
                   cardValue={item.cardIssuer ?? ""}
                   transferValue={item.bank ?? ""}
@@ -1094,6 +1094,12 @@ function Money({ label, value, onChange }: { label: string; value: number; onCha
   );
 }
 
+function BrandField({ value, kind, onChange }: { value: string; kind: BrandKind; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <BrandLabel brand={value} hint={kind} size={24} />;
+  return <BrandSelect value={value} kind={kind} onChange={onChange} className="sm:min-w-40" />;
+}
+
 function Text({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-36">{value || "-"}</span>;
@@ -1124,6 +1130,31 @@ function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (va
       {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
   );
+}
+
+function PaymentBrandField({
+  kind,
+  cardValue,
+  transferValue,
+  onCardChange,
+  onTransferChange,
+}: {
+  kind: PaymentKind;
+  cardValue: string;
+  transferValue: string;
+  onCardChange: (value: string) => void;
+  onTransferChange: (value: string) => void;
+}) {
+  const readOnly = useReadOnly();
+  if (kind === "other") {
+    if (readOnly) return <span className="block text-sm text-zinc-400 dark:text-zinc-500 sm:min-w-32">-</span>;
+    return <span className="block text-sm text-zinc-400 dark:text-zinc-500 sm:min-w-32">해당 없음</span>;
+  }
+  const brandKind: BrandKind = kind === "card" ? "card" : "bank";
+  const value = kind === "card" ? cardValue : transferValue;
+  const onChange = kind === "card" ? onCardChange : onTransferChange;
+  if (readOnly) return <BrandLabel brand={value} hint={brandKind} size={24} />;
+  return <BrandSelect value={value} kind={brandKind} onChange={onChange} className="sm:min-w-40" />;
 }
 
 function PaymentDetailField({
