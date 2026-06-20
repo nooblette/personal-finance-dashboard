@@ -1,4 +1,5 @@
 export type BrandKind = "bank" | "card" | "sec";
+export type BrandVariant = "original" | "fill";
 
 export type Brand = {
   id: string;
@@ -7,42 +8,43 @@ export type Brand = {
   initials: string;
   bg: string;
   fg: string;
-  hasLogo?: boolean;
+  hasOriginal?: boolean;
+  hasFill?: boolean;
 };
 
 const brands: Brand[] = [
-  { id: "kb", name: "KB국민은행", kind: "bank", initials: "KB", bg: "bg-yellow-400", fg: "text-zinc-900", hasLogo: true },
-  { id: "shinhan", name: "신한은행", kind: "bank", initials: "신한", bg: "bg-blue-700", fg: "text-white", hasLogo: true },
-  { id: "woori", name: "우리은행", kind: "bank", initials: "우리", bg: "bg-sky-700", fg: "text-white", hasLogo: true },
-  { id: "hana", name: "하나은행", kind: "bank", initials: "하나", bg: "bg-teal-700", fg: "text-white", hasLogo: true },
-  { id: "nh", name: "NH농협은행", kind: "bank", initials: "NH", bg: "bg-green-600", fg: "text-white", hasLogo: true },
-  { id: "ibk", name: "IBK기업은행", kind: "bank", initials: "IBK", bg: "bg-blue-600", fg: "text-white", hasLogo: true },
-  { id: "sc", name: "SC제일은행", kind: "bank", initials: "SC", bg: "bg-emerald-700", fg: "text-white", hasLogo: true },
-  { id: "citi", name: "한국씨티은행", kind: "bank", initials: "Citi", bg: "bg-blue-800", fg: "text-white", hasLogo: true },
-  { id: "kakaobank", name: "카카오뱅크", kind: "bank", initials: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900", hasLogo: true },
-  { id: "tossbank", name: "토스뱅크", kind: "bank", initials: "toss", bg: "bg-blue-500", fg: "text-white", hasLogo: true },
-  { id: "kbank", name: "케이뱅크", kind: "bank", initials: "K", bg: "bg-rose-500", fg: "text-white", hasLogo: true },
-  { id: "suhyup", name: "Sh수협은행", kind: "bank", initials: "Sh", bg: "bg-sky-500", fg: "text-white", hasLogo: true },
-  { id: "kdb", name: "KDB산업은행", kind: "bank", initials: "KDB", bg: "bg-blue-900", fg: "text-white", hasLogo: true },
-  { id: "dgb", name: "iM뱅크(대구은행)", kind: "bank", initials: "iM", bg: "bg-indigo-700", fg: "text-white", hasLogo: true },
-  { id: "bnk-busan", name: "부산은행", kind: "bank", initials: "BNK", bg: "bg-cyan-700", fg: "text-white", hasLogo: true },
-  { id: "bnk-gyeongnam", name: "경남은행", kind: "bank", initials: "경남", bg: "bg-cyan-800", fg: "text-white" },
+  { id: "kb", name: "KB국민은행", kind: "bank", initials: "KB", bg: "bg-yellow-400", fg: "text-zinc-900", hasOriginal: true, hasFill: true },
+  { id: "shinhan", name: "신한은행", kind: "bank", initials: "신한", bg: "bg-blue-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "woori", name: "우리은행", kind: "bank", initials: "우리", bg: "bg-sky-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "hana", name: "하나은행", kind: "bank", initials: "하나", bg: "bg-teal-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "nh", name: "NH농협은행", kind: "bank", initials: "NH", bg: "bg-green-600", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "ibk", name: "IBK기업은행", kind: "bank", initials: "IBK", bg: "bg-blue-600", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "sc", name: "SC제일은행", kind: "bank", initials: "SC", bg: "bg-emerald-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "citi", name: "한국씨티은행", kind: "bank", initials: "Citi", bg: "bg-blue-800", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "kakaobank", name: "카카오뱅크", kind: "bank", initials: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900", hasOriginal: true },
+  { id: "tossbank", name: "토스뱅크", kind: "bank", initials: "toss", bg: "bg-blue-500", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "kbank", name: "케이뱅크", kind: "bank", initials: "K", bg: "bg-rose-500", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "suhyup", name: "Sh수협은행", kind: "bank", initials: "Sh", bg: "bg-sky-500", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "kdb", name: "KDB산업은행", kind: "bank", initials: "KDB", bg: "bg-blue-900", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "dgb", name: "iM뱅크(대구은행)", kind: "bank", initials: "iM", bg: "bg-indigo-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "bnk-busan", name: "부산은행", kind: "bank", initials: "BNK", bg: "bg-cyan-700", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "bnk-gyeongnam", name: "경남은행", kind: "bank", initials: "경남", bg: "bg-cyan-800", fg: "text-white", hasOriginal: true, hasFill: true },
   { id: "gwangju", name: "광주은행", kind: "bank", initials: "광주", bg: "bg-amber-600", fg: "text-white" },
   { id: "jeonbuk", name: "전북은행", kind: "bank", initials: "전북", bg: "bg-emerald-800", fg: "text-white" },
-  { id: "jeju", name: "제주은행", kind: "bank", initials: "제주", bg: "bg-orange-600", fg: "text-white" },
-  { id: "mg", name: "MG새마을금고", kind: "bank", initials: "MG", bg: "bg-rose-700", fg: "text-white", hasLogo: true },
-  { id: "sinhyup", name: "신협", kind: "bank", initials: "신협", bg: "bg-emerald-600", fg: "text-white", hasLogo: true },
-  { id: "post", name: "우체국예금", kind: "bank", initials: "우체국", bg: "bg-red-600", fg: "text-white", hasLogo: true },
-  { id: "sbi", name: "SBI저축은행", kind: "bank", initials: "SBI", bg: "bg-indigo-600", fg: "text-white", hasLogo: true },
+  { id: "jeju", name: "제주은행", kind: "bank", initials: "제주", bg: "bg-orange-600", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "mg", name: "MG새마을금고", kind: "bank", initials: "MG", bg: "bg-rose-700", fg: "text-white" },
+  { id: "sinhyup", name: "신협", kind: "bank", initials: "신협", bg: "bg-emerald-600", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "post", name: "우체국예금", kind: "bank", initials: "우체국", bg: "bg-red-600", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "sbi", name: "SBI저축은행", kind: "bank", initials: "SBI", bg: "bg-indigo-600", fg: "text-white", hasOriginal: true, hasFill: true },
 
   { id: "shinhan-card", name: "신한카드", kind: "card", initials: "신한", bg: "bg-blue-700", fg: "text-white" },
-  { id: "samsung-card", name: "삼성카드", kind: "card", initials: "삼성", bg: "bg-blue-800", fg: "text-white", hasLogo: true },
-  { id: "hyundai-card", name: "현대카드", kind: "card", initials: "현대", bg: "bg-zinc-900", fg: "text-white", hasLogo: true },
+  { id: "samsung-card", name: "삼성카드", kind: "card", initials: "삼성", bg: "bg-blue-800", fg: "text-white", hasOriginal: true, hasFill: true },
+  { id: "hyundai-card", name: "현대카드", kind: "card", initials: "현대", bg: "bg-zinc-900", fg: "text-white", hasOriginal: true, hasFill: true },
   { id: "kb-card", name: "KB국민카드", kind: "card", initials: "KB", bg: "bg-yellow-400", fg: "text-zinc-900" },
-  { id: "lotte-card", name: "롯데카드", kind: "card", initials: "롯데", bg: "bg-red-700", fg: "text-white", hasLogo: true },
+  { id: "lotte-card", name: "롯데카드", kind: "card", initials: "롯데", bg: "bg-red-700", fg: "text-white", hasOriginal: true, hasFill: true },
   { id: "hana-card", name: "하나카드", kind: "card", initials: "하나", bg: "bg-teal-700", fg: "text-white" },
   { id: "woori-card", name: "우리카드", kind: "card", initials: "우리", bg: "bg-sky-700", fg: "text-white" },
-  { id: "bc-card", name: "BC카드", kind: "card", initials: "BC", bg: "bg-rose-600", fg: "text-white", hasLogo: true },
+  { id: "bc-card", name: "BC카드", kind: "card", initials: "BC", bg: "bg-rose-600", fg: "text-white", hasOriginal: true, hasFill: true },
   { id: "nh-card", name: "NH농협카드", kind: "card", initials: "NH", bg: "bg-green-600", fg: "text-white" },
   { id: "ibk-card", name: "IBK기업은행카드", kind: "card", initials: "IBK", bg: "bg-blue-600", fg: "text-white" },
   { id: "suhyup-card", name: "Sh수협카드", kind: "card", initials: "Sh", bg: "bg-sky-500", fg: "text-white" },
@@ -167,7 +169,23 @@ export function brandsByKind(kind: BrandKind): Brand[] {
   return brands.filter((brand) => brand.kind === kind);
 }
 
-export function BrandIcon({ brand, size = 40, rounded = "full", hint }: { brand: string | null | undefined; size?: number; rounded?: "full" | "md"; hint?: BrandKind }) {
+function brandAssetUrl(id: string, variant: BrandVariant): string {
+  return `${import.meta.env.BASE_URL}brands/${id}-${variant}.svg`;
+}
+
+export function BrandIcon({
+  brand,
+  size = 32,
+  rounded = "full",
+  hint,
+  variant = "fill",
+}: {
+  brand: string | null | undefined;
+  size?: number;
+  rounded?: "full" | "md";
+  hint?: BrandKind;
+  variant?: BrandVariant;
+}) {
   const found = getBrand(brand, hint);
   const radiusClass = rounded === "full" ? "rounded-full" : "rounded-md";
   if (!found) {
@@ -181,14 +199,16 @@ export function BrandIcon({ brand, size = 40, rounded = "full", hint }: { brand:
       </span>
     );
   }
-  if (found.hasLogo) {
+  const preferred: BrandVariant = variant === "original" && found.hasOriginal ? "original" : found.hasFill ? "fill" : found.hasOriginal ? "original" : "fill";
+  const hasAsset = preferred === "original" ? found.hasOriginal : found.hasFill;
+  if (hasAsset) {
     return (
       <span
         className={`inline-flex shrink-0 items-center justify-center overflow-hidden bg-white ring-1 ring-zinc-200 dark:bg-zinc-50 ${radiusClass}`}
         style={{ width: size, height: size }}
         aria-label={found.name}
       >
-        <img src={`${import.meta.env.BASE_URL}brands/${found.id}.svg`} alt="" className="h-[78%] w-[78%] object-contain" loading="lazy" />
+        <img src={brandAssetUrl(found.id, preferred)} alt="" className="h-[78%] w-[78%] object-contain" loading="lazy" />
       </span>
     );
   }
@@ -199,6 +219,50 @@ export function BrandIcon({ brand, size = 40, rounded = "full", hint }: { brand:
       aria-label={found.name}
     >
       {found.initials}
+    </span>
+  );
+}
+
+export function BrandSelect({
+  value,
+  kind,
+  onChange,
+  placeholder = "선택",
+  className,
+}: {
+  value: string;
+  kind: BrandKind;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const id = resolveBrandId(value, kind);
+  const options = brandsByKind(kind);
+  return (
+    <span className={`relative inline-flex h-10 min-w-0 items-center gap-2 rounded-md border border-zinc-200 bg-white pl-1 pr-2 shadow-sm focus-within:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 ${className ?? ""}`}>
+      <BrandIcon brand={id} hint={kind} size={28} rounded="full" />
+      <select
+        className="h-full min-w-0 flex-1 cursor-pointer appearance-none bg-transparent pr-4 text-sm text-zinc-900 outline-none dark:text-zinc-50"
+        value={id ?? ""}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
+export function BrandLabel({ brand, hint, size = 24, variant = "fill" }: { brand: string | null | undefined; hint?: BrandKind; size?: number; variant?: BrandVariant }) {
+  const found = getBrand(brand, hint);
+  return (
+    <span className="inline-flex items-center gap-2 text-sm">
+      <BrandIcon brand={found?.id ?? brand} hint={hint} size={size} variant={variant} />
+      <span className="truncate">{found?.name ?? brand ?? "-"}</span>
     </span>
   );
 }
