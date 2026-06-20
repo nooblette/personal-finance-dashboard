@@ -139,19 +139,27 @@ const aliasEntries: Array<[string, string]> = [
 
 const aliasMap: Record<string, string> = Object.fromEntries(aliasEntries.map(([k, v]) => [k.toLowerCase(), v]));
 
-export function resolveBrandId(input?: string | null): string | null {
+export function resolveBrandId(input?: string | null, hint?: BrandKind): string | null {
   if (!input) return null;
   const trimmed = input.trim();
   if (!trimmed) return null;
   const lower = trimmed.toLowerCase();
   if (brandById[trimmed]) return trimmed;
+  if (hint) {
+    const sameKind = brands.find(
+      (brand) =>
+        brand.kind === hint &&
+        (brand.name === trimmed || brand.name.includes(trimmed) || trimmed.includes(brand.name)),
+    );
+    if (sameKind) return sameKind.id;
+  }
   if (aliasMap[lower]) return aliasMap[lower];
   const found = brands.find((brand) => brand.name === trimmed || brand.name.includes(trimmed) || trimmed.includes(brand.name));
   return found ? found.id : null;
 }
 
-export function getBrand(input?: string | null): Brand | null {
-  const id = resolveBrandId(input);
+export function getBrand(input?: string | null, hint?: BrandKind): Brand | null {
+  const id = resolveBrandId(input, hint);
   return id ? brandById[id] : null;
 }
 
@@ -159,8 +167,8 @@ export function brandsByKind(kind: BrandKind): Brand[] {
   return brands.filter((brand) => brand.kind === kind);
 }
 
-export function BrandIcon({ brand, size = 40, rounded = "full" }: { brand: string | null | undefined; size?: number; rounded?: "full" | "md" }) {
-  const found = getBrand(brand);
+export function BrandIcon({ brand, size = 40, rounded = "full", hint }: { brand: string | null | undefined; size?: number; rounded?: "full" | "md"; hint?: BrandKind }) {
+  const found = getBrand(brand, hint);
   const radiusClass = rounded === "full" ? "rounded-full" : "rounded-md";
   if (!found) {
     return (

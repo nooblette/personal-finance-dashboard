@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
+import { BrandIcon, BrandKind } from "./brandLibrary";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -37,7 +38,7 @@ type InvestmentProduct = { id: string; destination: string; broker: string; rati
 type Account = { id: string; bank: string; name: string; number: string; type: AccountType };
 type Card = { id: string; name: string; issuer: string; settlementAccount: string };
 type FlowPosition = { x: number; y: number };
-type FlowNode = { id: string; title: string; subtitle: string; x: number; y: number; tone: "teal" | "indigo" | "amber" | "zinc"; brand?: string };
+type FlowNode = { id: string; title: string; subtitle: string; x: number; y: number; tone: "teal" | "indigo" | "amber" | "zinc"; brand?: string; brandKind?: BrandKind };
 type FlowEdge = { from: string; to: string };
 
 type DashboardData = {
@@ -71,44 +72,6 @@ function paymentKind(method: string): PaymentKind {
 const exceptionCategories: string[] = ["병원", "경조사", "의류", "여행"];
 const accountTypes: AccountType[] = ["급여통장", "생활비통장", "투자계좌", "비상금통장"];
 
-type BrandStyle = { label: string; bg: string; fg: string };
-const brandTable: Record<string, BrandStyle> = {
-  "농협": { label: "NH", bg: "bg-green-600", fg: "text-white" },
-  "NH농협": { label: "NH", bg: "bg-green-600", fg: "text-white" },
-  "국민은행": { label: "KB", bg: "bg-yellow-400", fg: "text-zinc-900" },
-  "KB국민": { label: "KB", bg: "bg-yellow-400", fg: "text-zinc-900" },
-  "신한": { label: "신한", bg: "bg-blue-700", fg: "text-white" },
-  "신한은행": { label: "신한", bg: "bg-blue-700", fg: "text-white" },
-  "우리은행": { label: "우리", bg: "bg-sky-700", fg: "text-white" },
-  "하나": { label: "하나", bg: "bg-teal-700", fg: "text-white" },
-  "하나은행": { label: "하나", bg: "bg-teal-700", fg: "text-white" },
-  "카카오뱅크": { label: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900" },
-  "토스뱅크": { label: "toss", bg: "bg-blue-500", fg: "text-white" },
-  "토스": { label: "toss", bg: "bg-blue-500", fg: "text-white" },
-  "IBK기업": { label: "IBK", bg: "bg-blue-600", fg: "text-white" },
-  "SC제일": { label: "SC", bg: "bg-emerald-700", fg: "text-white" },
-  "미래에셋": { label: "미래", bg: "bg-orange-500", fg: "text-white" },
-  "한국투자": { label: "한투", bg: "bg-red-600", fg: "text-white" },
-  "삼성카드": { label: "삼성", bg: "bg-blue-800", fg: "text-white" },
-  "삼성": { label: "삼성", bg: "bg-blue-800", fg: "text-white" },
-  "현대카드": { label: "현대", bg: "bg-zinc-900", fg: "text-white" },
-  "현대": { label: "현대", bg: "bg-zinc-900", fg: "text-white" },
-  "신한카드": { label: "신한", bg: "bg-blue-700", fg: "text-white" },
-  "롯데카드": { label: "롯데", bg: "bg-red-700", fg: "text-white" },
-  "BC카드": { label: "BC", bg: "bg-rose-600", fg: "text-white" },
-  "하나카드": { label: "하나", bg: "bg-teal-700", fg: "text-white" },
-  "우리카드": { label: "우리", bg: "bg-sky-700", fg: "text-white" },
-  "국민카드": { label: "KB", bg: "bg-yellow-400", fg: "text-zinc-900" },
-};
-
-function brandStyle(brand?: string): BrandStyle {
-  if (!brand) return { label: "?", bg: "bg-zinc-300 dark:bg-zinc-700", fg: "text-zinc-700 dark:text-zinc-200" };
-  const direct = brandTable[brand];
-  if (direct) return direct;
-  const key = Object.keys(brandTable).find((name) => brand.includes(name));
-  if (key) return brandTable[key];
-  return { label: brand.slice(0, 2), bg: "bg-zinc-400 dark:bg-zinc-600", fg: "text-white" };
-}
 const format = new Intl.NumberFormat("ko-KR");
 const newId = () => crypto.randomUUID();
 const won = (value: number) => `${format.format(Math.round(value || 0))}원`;
@@ -295,19 +258,19 @@ export default function App() {
 
     if (salary) {
       const key = flowKey("account", salary.id);
-      nodes.push({ id: key, title: accountLabel(salary), subtitle: salary.type, tone: "teal", brand: salary.bank, ...position(key, { x: 28, y: 150 }) });
+      nodes.push({ id: key, title: accountLabel(salary), subtitle: salary.type, tone: "teal", brand: salary.bank, brandKind: "bank", ...position(key, { x: 28, y: 150 }) });
     }
     if (living) {
       const key = flowKey("account", living.id);
-      nodes.push({ id: key, title: accountLabel(living), subtitle: living.type, tone: "indigo", brand: living.bank, ...position(key, { x: 300, y: 150 }) });
+      nodes.push({ id: key, title: accountLabel(living), subtitle: living.type, tone: "indigo", brand: living.bank, brandKind: "bank", ...position(key, { x: 300, y: 150 }) });
     }
     investments.forEach((item, index) => {
       const key = flowKey("account", item.id);
-      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "amber", brand: item.bank, ...position(key, { x: 570, y: 40 + index * 110 }) });
+      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "amber", brand: item.bank, brandKind: "sec", ...position(key, { x: 570, y: 40 + index * 110 }) });
     });
     others.forEach((item, index) => {
       const key = flowKey("account", item.id);
-      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "indigo", brand: item.bank, ...position(key, { x: 570, y: 380 + index * 110 }) });
+      nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "indigo", brand: item.bank, brandKind: "bank", ...position(key, { x: 570, y: 380 + index * 110 }) });
     });
 
     if (salary && living) edges.push({ from: flowKey("account", salary.id), to: flowKey("account", living.id) });
@@ -324,14 +287,14 @@ export default function App() {
 
     data.cards.forEach((card, index) => {
       const cardKey = flowKey("card", card.id);
-      nodes.push({ id: cardKey, title: card.name || "카드", subtitle: card.issuer || "카드사", tone: "zinc", brand: card.issuer, ...position(cardKey, { x: 28, y: 320 + index * 110 }) });
+      nodes.push({ id: cardKey, title: card.name || "카드", subtitle: card.issuer || "카드사", tone: "zinc", brand: card.issuer, brandKind: "card", ...position(cardKey, { x: 28, y: 320 + index * 110 }) });
       const matched = matchAccount(card.settlementAccount || "");
       if (matched) {
         edges.push({ from: cardKey, to: flowKey("account", matched.id) });
       } else if (card.settlementAccount) {
         const settleKey = flowKey("settlement", card.settlementAccount);
         if (!nodes.find((node) => node.id === settleKey)) {
-          nodes.push({ id: settleKey, title: card.settlementAccount, subtitle: "결제계좌", tone: "zinc", brand: card.settlementAccount, ...position(settleKey, { x: 300, y: 320 + index * 110 }) });
+          nodes.push({ id: settleKey, title: card.settlementAccount, subtitle: "결제계좌", tone: "zinc", brand: card.settlementAccount, brandKind: "bank", ...position(settleKey, { x: 300, y: 320 + index * 110 }) });
         }
         edges.push({ from: cardKey, to: settleKey });
       }
@@ -905,29 +868,24 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
               );
             })}
           </svg>
-          {nodes.map((node) => {
-            const style = brandStyle(node.brand);
-            return (
-              <button
-                key={node.id}
-                type="button"
-                className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
-                style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
-                onPointerDown={(event) => startDrag(event, node)}
-                onPointerMove={moveDrag}
-                onPointerUp={stopDrag}
-                onPointerCancel={stopDrag}
-              >
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tracking-tight ${style.bg} ${style.fg}`}>
-                  {style.label}
-                </span>
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-semibold">{node.title}</span>
-                  <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
-                </span>
-              </button>
-            );
-          })}
+          {nodes.map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+              style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
+              onPointerDown={(event) => startDrag(event, node)}
+              onPointerMove={moveDrag}
+              onPointerUp={stopDrag}
+              onPointerCancel={stopDrag}
+            >
+              <BrandIcon brand={node.brand} hint={node.brandKind} size={40} />
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-semibold">{node.title}</span>
+                <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
+              </span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -1392,7 +1350,12 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
           <li key={item.name} className="flex items-center gap-3 text-sm">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
             <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
-            {item.broker && <span className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline">{item.broker}</span>}
+            {item.broker && (
+              <span className="hidden items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
+                <BrandIcon brand={item.broker} hint="sec" size={18} rounded="md" />
+                {item.broker}
+              </span>
+            )}
             <span className="tabular-nums text-xs text-zinc-500 dark:text-zinc-400">{item.value}%</span>
             <span className="w-24 text-right font-semibold tabular-nums">{won(item.amount)}</span>
           </li>
