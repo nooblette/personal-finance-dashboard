@@ -79,8 +79,8 @@ const toNumber = (value: string) => Number(value.replace(/,/g, "")) || 0;
 
 const defaultData: DashboardData = {
   principles: "- 현금 500만원 유지\n- 병원비는 현금 사용\n- 경조사비는 현금 사용\n- 여행비는 현금 사용\n- 익월 급여일에 현금 복구",
-  salary: 4200000,
-  sideIncomes: [{ id: newId(), name: "부수입", amount: 300000 }],
+  salary: 3000000,
+  sideIncomes: [{ id: newId(), name: "부수입", amount: 200000 }],
   fixedExpenses: [
     { id: newId(), name: "월세", amount: 800000, paymentMethod: "계좌이체" },
     { id: newId(), name: "통신비", amount: 80000, paymentMethod: "카드" },
