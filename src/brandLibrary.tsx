@@ -178,7 +178,7 @@ export function BrandIcon({
   size = 32,
   rounded = "full",
   hint,
-  variant = "fill",
+  variant = "original",
 }: {
   brand: string | null | undefined;
   size?: number;
@@ -199,7 +199,7 @@ export function BrandIcon({
       </span>
     );
   }
-  const preferred: BrandVariant = variant === "original" && found.hasOriginal ? "original" : found.hasFill ? "fill" : found.hasOriginal ? "original" : "fill";
+  const preferred: BrandVariant = variant === "fill" && found.hasFill ? "fill" : found.hasOriginal ? "original" : found.hasFill ? "fill" : "original";
   const hasAsset = preferred === "original" ? found.hasOriginal : found.hasFill;
   if (hasAsset) {
     return (
@@ -208,7 +208,7 @@ export function BrandIcon({
         style={{ width: size, height: size }}
         aria-label={found.name}
       >
-        <img src={brandAssetUrl(found.id, preferred)} alt="" className="h-[78%] w-[78%] object-contain" loading="lazy" />
+        <img src={brandAssetUrl(found.id, preferred)} alt="" className="h-full w-full object-cover" loading="lazy" />
       </span>
     );
   }
@@ -257,7 +257,7 @@ export function BrandSelect({
   );
 }
 
-export function BrandLabel({ brand, hint, size = 24, variant = "fill" }: { brand: string | null | undefined; hint?: BrandKind; size?: number; variant?: BrandVariant }) {
+export function BrandLabel({ brand, hint, size = 24, variant = "original" }: { brand: string | null | undefined; hint?: BrandKind; size?: number; variant?: BrandVariant }) {
   const found = getBrand(brand, hint);
   return (
     <span className="inline-flex items-center gap-2 text-sm">
