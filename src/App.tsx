@@ -400,7 +400,7 @@ export default function App() {
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
-        <Section title="1. 포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
+        <Section title="포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => patch("investmentBase", value)} />
             <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
@@ -430,7 +430,7 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="2. 지출 흐름도">
+        <Section title="지출 흐름도">
           <EditableFlow
             nodes={expenseFlow.nodes}
             edges={expenseFlow.edges}
@@ -474,39 +474,7 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="3. 월 수입">
-          <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-            <div className="flex min-w-0 flex-col gap-3">
-              <Money label="월급" value={data.salary} onChange={(value) => patch("salary", value)} />
-              <Readout label="총 수입" value={won(totalIncome)} />
-            </div>
-            <div className="min-w-0 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold tracking-tight">부수입 상세</h3>
-                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{data.sideIncomes.length}건 · 합계 {won(totalSideIncome)}</p>
-                </div>
-                {!isView && (
-                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("sideIncomes", [...data.sideIncomes, { id: newId(), name: "", amount: 0 }])} />
-                )}
-              </div>
-              {data.sideIncomes.length === 0 ? (
-                <p className="py-3 text-center text-sm text-zinc-500 dark:text-zinc-400">부수입 항목이 없습니다.</p>
-              ) : (
-                <Table
-                  columns={["출처", "금액", ""]}
-                  rows={data.sideIncomes.map((item) => [
-                    <Text value={item.name} onChange={(value) => patch("sideIncomes", data.sideIncomes.map((row) => (row.id === item.id ? { ...row, name: value } : row)))} />,
-                    <NumberBox value={item.amount} onChange={(value) => patch("sideIncomes", data.sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: value } : row)))} />,
-                    <Delete onClick={() => patch("sideIncomes", data.sideIncomes.filter((row) => row.id !== item.id))} />,
-                  ])}
-                />
-              )}
-            </div>
-          </div>
-        </Section>
-
-        <Section title="4. 고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "" }])} />}>
+        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "" }])} />}>
           <Table
             columns={["이름", "금액", "결제수단", ""]}
             rows={data.fixedExpenses.map((item) => [
@@ -519,7 +487,7 @@ export default function App() {
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
 
-        <Section title="5. 변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
+        <Section title="변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
           <button
             type="button"
             className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
@@ -606,7 +574,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section title="6. 자산 운영 원칙">
+        <Section title="자산 운영 원칙">
           {isView ? (
             <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
               <ReactMarkdown>{data.principles}</ReactMarkdown>
