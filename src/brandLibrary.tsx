@@ -10,6 +10,7 @@ export type Brand = {
   fg: string;
   hasOriginal?: boolean;
   hasFill?: boolean;
+  logoAlias?: string;
 };
 
 const brands: Brand[] = [
@@ -62,8 +63,8 @@ const brands: Brand[] = [
   { id: "kiwoom", name: "키움증권", kind: "sec", initials: "키움", bg: "bg-red-700", fg: "text-white" },
   { id: "meritz-sec", name: "메리츠증권", kind: "sec", initials: "메리츠", bg: "bg-amber-700", fg: "text-white" },
   { id: "daishin", name: "대신증권", kind: "sec", initials: "대신", bg: "bg-blue-900", fg: "text-white" },
-  { id: "kakaopay-sec", name: "카카오페이증권", kind: "sec", initials: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900" },
-  { id: "toss-sec", name: "토스증권", kind: "sec", initials: "toss", bg: "bg-blue-500", fg: "text-white" },
+  { id: "kakaopay-sec", name: "카카오페이증권", kind: "sec", initials: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900", hasOriginal: true, hasFill: false, logoAlias: "kakaobank" },
+  { id: "toss-sec", name: "토스증권", kind: "sec", initials: "toss", bg: "bg-blue-500", fg: "text-white", hasOriginal: true, hasFill: true, logoAlias: "tossbank" },
   { id: "eugene", name: "유진투자증권", kind: "sec", initials: "유진", bg: "bg-indigo-700", fg: "text-white" },
   { id: "kyobo-sec", name: "교보증권", kind: "sec", initials: "교보", bg: "bg-amber-600", fg: "text-white" },
   { id: "hyundai-motor-sec", name: "현대차증권", kind: "sec", initials: "현대", bg: "bg-zinc-900", fg: "text-white" },
@@ -169,8 +170,9 @@ export function brandsByKind(kind: BrandKind): Brand[] {
   return brands.filter((brand) => brand.kind === kind);
 }
 
-function brandAssetUrl(id: string, variant: BrandVariant): string {
-  return `${import.meta.env.BASE_URL}brands/${id}-${variant}.svg`;
+function brandAssetUrl(brand: Brand, variant: BrandVariant): string {
+  const assetId = brand.logoAlias ?? brand.id;
+  return `${import.meta.env.BASE_URL}brands/${assetId}-${variant}.svg`;
 }
 
 export function BrandIcon({
@@ -208,7 +210,7 @@ export function BrandIcon({
         style={{ width: size, height: size }}
         aria-label={found.name}
       >
-        <img src={brandAssetUrl(found.id, preferred)} alt="" className="h-full w-full object-cover" loading="lazy" />
+        <img src={brandAssetUrl(found, preferred)} alt="" className="h-full w-full object-cover" loading="lazy" />
       </span>
     );
   }
