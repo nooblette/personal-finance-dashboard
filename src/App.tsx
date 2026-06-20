@@ -372,8 +372,7 @@ export default function App() {
         <header className="flex flex-col gap-3 sm:gap-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-teal-700 dark:text-teal-300 sm:text-xs">브라우저에만 저장되는 로컬 대시보드</p>
-              <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
             </div>
             <IconToggle
               label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
