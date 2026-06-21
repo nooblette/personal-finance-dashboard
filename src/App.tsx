@@ -1583,22 +1583,22 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
           <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">{won(baseAmount * (total / 100))}</span>
         </div>
       </div>
-      <ul className="grid items-center gap-x-3 gap-y-1.5 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_auto_44px_96px]">
+      <ul className="grid items-center gap-x-2 gap-y-1.5 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_18px_auto_auto_44px_96px]">
         {data.map((item) => (
           <li key={item.name} className="contents">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
             <span className="min-w-0 truncate font-medium">{item.name}</span>
-            <span className="hidden items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
-              {item.broker && (
-                <>
-                  <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
-                  <span>{item.broker}</span>
-                  {item.accountType && (
-                    <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {item.accountType}
-                    </span>
-                  )}
-                </>
+            <span className="hidden sm:block">
+              {item.broker && <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />}
+            </span>
+            <span className="hidden whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400 sm:block">
+              {item.broker}
+            </span>
+            <span className="hidden sm:block">
+              {item.accountType && (
+                <span className="inline-block whitespace-nowrap rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                  {item.accountType}
+                </span>
               )}
             </span>
             <span className="text-right tabular-nums text-xs text-zinc-500 dark:text-zinc-400">{item.value}%</span>
