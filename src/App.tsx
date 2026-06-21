@@ -1153,17 +1153,15 @@ function InvestmentAccountTypeSelect({ value, onChange }: { value: string; onCha
 
 function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="inline-flex h-10 cursor-pointer items-center gap-2">
-      <input
-        type="checkbox"
-        className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 dark:border-zinc-600 dark:bg-zinc-900"
-        checked={value}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className={`text-[11px] font-medium ${value ? "text-teal-700 dark:text-teal-300" : "text-zinc-500 dark:text-zinc-400"}`}>
-        {value ? "포함" : "제외"}
-      </span>
-    </label>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      onClick={() => onChange(!value)}
+      className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium transition ${value ? "bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-900/50 dark:text-teal-200 dark:hover:bg-teal-900" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"}`}
+    >
+      {value ? "포함" : "제외"}
+    </button>
   );
 }
 
