@@ -64,6 +64,7 @@ const useReadOnly = () => useContext(ViewModeContext);
 type Mode = "view" | "edit";
 const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
 const paymentMethodOptions: string[] = ["카드", "계좌이체", "자동이체", "현금", "기타"];
+const investmentAccountTypeOptions: string[] = ["위탁(일반)", "ISA", "해외주식", "연금저축", "IRP", "CMA", "기타"];
 
 function paymentKind(method: string): PaymentKind {
   if (method.includes("카드")) return "card";
@@ -401,7 +402,7 @@ export default function App() {
               rows={data.investmentProducts.map((item) => [
                 <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
                 <BrandField value={item.broker} kind="sec" onChange={(value) => updateInvestment(item.id, { broker: value })} />,
-                <Text value={item.accountType ?? ""} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
+                <InvestmentAccountTypeSelect value={item.accountType ?? ""} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
                 <Text value={item.accountNumber ?? ""} onChange={(value) => updateInvestment(item.id, { accountNumber: value })} />,
                 <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
                 <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
@@ -1133,6 +1134,19 @@ function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (va
       {!value && <option value="">선택</option>}
       {hasCustom && <option value={value}>{value}</option>}
       {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+    </select>
+  );
+}
+
+function InvestmentAccountTypeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-28">{value || "-"}</span>;
+  const hasCustom = value && !investmentAccountTypeOptions.includes(value);
+  return (
+    <select className="field h-10 sm:min-w-28" value={value} onChange={(event) => onChange(event.target.value)}>
+      {!value && <option value="">선택</option>}
+      {hasCustom && <option value={value}>{value}</option>}
+      {investmentAccountTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
   );
 }
