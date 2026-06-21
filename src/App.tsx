@@ -35,7 +35,7 @@ type FixedExpense = {
 type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
 type SideIncome = { id: string; name: string; amount: number };
-type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number; accountType?: string; accountNumber?: string };
+type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number; accountType: string; accountNumber?: string };
 type Account = { id: string; bank: string; name: string; number: string; type: AccountType };
 type Card = { id: string; name: string; issuer: string; settlementAccount: string; settlementAccountId?: string };
 type FlowPosition = { x: number; y: number };
@@ -96,11 +96,11 @@ const defaultData: DashboardData = {
     { id: newId(), date: "2026-04-20", category: "여행", amount: 280000, memo: "숙소 예약" },
   ],
   investmentProducts: [
-    { id: newId(), destination: "ISA S&P500", broker: "미래에셋", ratio: 50 },
-    { id: newId(), destination: "QQQ", broker: "한국투자", ratio: 10 },
-    { id: newId(), destination: "NVIDIA", broker: "한국투자", ratio: 10 },
-    { id: newId(), destination: "Alphabet", broker: "한국투자", ratio: 5 },
-    { id: newId(), destination: "SGOV", broker: "미래에셋", ratio: 25 },
+    { id: newId(), destination: "ISA S&P500", broker: "미래에셋", ratio: 50, accountType: "ISA" },
+    { id: newId(), destination: "QQQ", broker: "한국투자", ratio: 10, accountType: "해외주식" },
+    { id: newId(), destination: "NVIDIA", broker: "한국투자", ratio: 10, accountType: "해외주식" },
+    { id: newId(), destination: "Alphabet", broker: "한국투자", ratio: 5, accountType: "해외주식" },
+    { id: newId(), destination: "SGOV", broker: "미래에셋", ratio: 25, accountType: "ISA" },
   ],
   accounts: [
     { id: newId(), bank: "농협", name: "급여통장", number: "000-0000-0000", type: "급여통장" },
@@ -134,6 +134,12 @@ function loadData(): DashboardData {
       next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
     }
     if (next.investmentBase === undefined) next.investmentBase = null;
+    if (Array.isArray(next.investmentProducts)) {
+      next.investmentProducts = next.investmentProducts.map((item) => ({
+        ...item,
+        accountType: item.accountType && item.accountType.length > 0 ? item.accountType : "위탁(일반)",
+      }));
+    }
     return next;
   } catch {
     return defaultData;
@@ -391,7 +397,7 @@ export default function App() {
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
-        <Section title="포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0 }])} />}>
+        <Section title="포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0, accountType: "위탁(일반)" }])} />}>
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => patch("investmentBase", value)} />
             <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
@@ -404,7 +410,7 @@ export default function App() {
               rows={data.investmentProducts.map((item) => [
                 <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
                 <BrandField value={item.broker} kind="sec" onChange={(value) => updateInvestment(item.id, { broker: value })} />,
-                <InvestmentAccountTypeSelect value={item.accountType ?? ""} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
+                <InvestmentAccountTypeSelect value={item.accountType} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
                 <Text value={item.accountNumber ?? ""} onChange={(value) => updateInvestment(item.id, { accountNumber: value })} />,
                 <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
                 <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
@@ -1184,7 +1190,6 @@ function InvestmentAccountTypeSelect({ value, onChange }: { value: string; onCha
   const hasCustom = value && !investmentAccountTypeOptions.includes(value);
   return (
     <select className="field h-10 sm:min-w-28" value={value} onChange={(event) => onChange(event.target.value)}>
-      {!value && <option value="">선택</option>}
       {hasCustom && <option value={value}>{value}</option>}
       {investmentAccountTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
@@ -1419,7 +1424,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
       name: item.destination || "미지정",
       broker: getBrand(item.broker, "sec")?.name ?? item.broker,
       brokerId: item.broker,
-      accountType: item.accountType ?? "",
+      accountType: item.accountType,
       value: item.ratio,
       amount: baseAmount * (item.ratio / 100),
       color: portfolioPalette[index % portfolioPalette.length],
@@ -1455,18 +1460,20 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
         {data.map((item) => (
           <li
             key={item.name}
-            className="grid items-center gap-3 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_160px_44px_96px]"
+            className="grid items-center gap-3 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_220px_44px_96px]"
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
             <span className="min-w-0 truncate font-medium">{item.name}</span>
-            <span className="hidden min-w-0 items-center justify-end gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
+            <span className="hidden min-w-0 items-center justify-end gap-2 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
               {item.broker && (
                 <>
                   <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
-                  <span className="min-w-0 truncate">
-                    {item.broker}
-                    {item.accountType && <span className="ml-1 text-zinc-400 dark:text-zinc-500">· {item.accountType}</span>}
-                  </span>
+                  <span className="min-w-0 truncate">{item.broker}</span>
+                  {item.accountType && (
+                    <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                      {item.accountType}
+                    </span>
+                  )}
                 </>
               )}
             </span>
