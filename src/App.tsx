@@ -997,13 +997,13 @@ function IncomeMetric({
         {sideIncomes.map((item) => (
           <div key={item.id} className="flex items-center gap-2 text-xs">
             <input
-              className="field h-9 w-12 shrink-0 truncate text-zinc-500 dark:text-zinc-400"
-              placeholder="부수입"
+              className="field h-9 flex-1 min-w-0 truncate text-zinc-700 dark:text-zinc-200"
+              placeholder="부수입 유형"
               value={item.name}
               onChange={(event) => onSideIncomesChange(sideIncomes.map((row) => (row.id === item.id ? { ...row, name: event.target.value } : row)))}
             />
             <input
-              className="field h-9 flex-1 min-w-0"
+              className="field h-9 w-28 shrink-0 text-right"
               inputMode="numeric"
               value={format.format(item.amount)}
               onChange={(event) => onSideIncomesChange(sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: toNumber(event.target.value) } : row)))}
