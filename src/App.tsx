@@ -1406,19 +1406,22 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
       </div>
       <ul className="flex flex-col gap-1.5">
         {data.map((item) => (
-          <li key={item.name} className="flex items-center gap-3 text-sm">
+          <li
+            key={item.name}
+            className="grid items-center gap-3 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_160px_44px_96px]"
+          >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
-            <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
-            <span className="hidden w-40 shrink-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
+            <span className="min-w-0 truncate font-medium">{item.name}</span>
+            <span className="hidden min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
               {item.broker && (
                 <>
                   <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
-                  <span className="truncate">{item.broker}</span>
+                  <span className="min-w-0 truncate">{item.broker}</span>
                 </>
               )}
             </span>
-            <span className="tabular-nums text-xs text-zinc-500 dark:text-zinc-400">{item.value}%</span>
-            <span className="w-24 text-right font-semibold tabular-nums">{won(item.amount)}</span>
+            <span className="text-right tabular-nums text-xs text-zinc-500 dark:text-zinc-400">{item.value}%</span>
+            <span className="text-right font-semibold tabular-nums">{won(item.amount)}</span>
           </li>
         ))}
       </ul>
