@@ -1141,7 +1141,7 @@ function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value:
   const readOnly = useReadOnly();
   if (readOnly) {
     return (
-      <span className={`inline-flex h-6 min-w-16 items-center justify-center rounded-full px-2 text-xs font-medium ${value ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
+      <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${value ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
         {value ? "포함" : "제외"}
       </span>
     );
