@@ -34,7 +34,7 @@ type FixedExpense = {
 type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
 type SideIncome = { id: string; name: string; amount: number };
-type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number };
+type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number; accountType?: string; accountNumber?: string };
 type Account = { id: string; bank: string; name: string; number: string; type: AccountType };
 type Card = { id: string; name: string; issuer: string; settlementAccount: string };
 type FlowPosition = { x: number; y: number };
@@ -395,10 +395,12 @@ export default function App() {
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
           {!isView && (
             <Table
-              columns={["투자처", "증권사", "투자비율", "투자금액", ""]}
+              columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액", ""]}
               rows={data.investmentProducts.map((item) => [
                 <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
                 <BrandField value={item.broker} kind="sec" onChange={(value) => updateInvestment(item.id, { broker: value })} />,
+                <Text value={item.accountType ?? ""} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
+                <Text value={item.accountNumber ?? ""} onChange={(value) => updateInvestment(item.id, { accountNumber: value })} />,
                 <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
                 <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
                 <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
