@@ -30,6 +30,7 @@ type FixedExpense = {
   account?: string;
   cardIssuer?: string;
   cardName?: string;
+  included?: boolean;
 };
 type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
@@ -190,8 +191,9 @@ export default function App() {
 
   const totalSideIncome = data.sideIncomes.reduce((sum, item) => sum + item.amount, 0);
   const totalIncome = data.salary + totalSideIncome;
-  const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0), 0);
-  const totalFixed = data.fixedExpenses.reduce((sum, item) => sum + item.amount, 0);
+  const includedFixed = data.fixedExpenses.filter((item) => item.included !== false);
+  const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - includedFixed.reduce((sum, item) => sum + item.amount, 0), 0);
+  const totalFixed = includedFixed.reduce((sum, item) => sum + item.amount, 0);
   const disposableIncome = totalIncome - totalFixed;
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
 
@@ -382,7 +384,7 @@ export default function App() {
             onSalaryChange={(value) => patch("salary", value)}
             onSideIncomesChange={(rows) => patch("sideIncomes", rows)}
           />
-          <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
+          <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${includedFixed.length}/${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
@@ -462,12 +464,13 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드" }])} />}>
+        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true }])} />}>
           <Table
-            columns={["이름", "금액", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
+            columns={["포함", "이름", "금액", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
             rows={data.fixedExpenses.map((item) => {
               const kind = paymentKind(item.paymentMethod);
               return [
+                <IncludedToggle value={item.included !== false} onChange={(value) => updateFixed(item.id, { included: value })} />,
                 <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
                 <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
                 <PaymentMethodSelect value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
@@ -1131,6 +1134,28 @@ function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (va
       {hasCustom && <option value={value}>{value}</option>}
       {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
+  );
+}
+
+function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value: boolean) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) {
+    return (
+      <span className={`inline-flex h-6 min-w-16 items-center justify-center rounded-full px-2 text-xs font-medium ${value ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
+        {value ? "포함" : "제외"}
+      </span>
+    );
+  }
+  return (
+    <label className="inline-flex h-10 cursor-pointer items-center gap-2">
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 dark:border-zinc-600 dark:bg-zinc-900"
+        checked={value}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="text-xs text-zinc-500 dark:text-zinc-400">{value ? "포함" : "제외"}</span>
+    </label>
   );
 }
 
