@@ -41,6 +41,7 @@ type Card = { id: string; name: string; issuer: string; settlementAccount: strin
 type FlowPosition = { x: number; y: number };
 type FlowNode = { id: string; title: string; subtitle: string; x: number; y: number; tone: "teal" | "indigo" | "amber" | "zinc"; brand?: string; brandKind?: BrandKind };
 type FlowEdge = { from: string; to: string };
+type CustomFlowEdge = FlowEdge & { id: string };
 
 type DashboardData = {
   principles: string;
@@ -56,6 +57,7 @@ type DashboardData = {
   analysisPeriod: Period;
   darkMode: boolean;
   flowPositions: Record<string, FlowPosition>;
+  customFlowEdges: CustomFlowEdge[];
 };
 
 const STORAGE_KEY = "personal-finance-dashboard:v1";
@@ -117,6 +119,7 @@ const defaultData: DashboardData = {
   analysisPeriod: "monthly",
   darkMode: false,
   flowPositions: {},
+  customFlowEdges: [],
 };
 
 function loadData(): DashboardData {
@@ -134,6 +137,7 @@ function loadData(): DashboardData {
       next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
     }
     if (next.investmentBase === undefined) next.investmentBase = null;
+    if (!Array.isArray(next.customFlowEdges)) next.customFlowEdges = [];
     if (Array.isArray(next.investmentProducts)) {
       next.investmentProducts = next.investmentProducts.map((item) => ({
         ...item,
@@ -310,8 +314,11 @@ export default function App() {
         edges.push({ from: cardKey, to: settleKey });
       }
     });
-    return { nodes, edges };
-  }, [data.accounts, data.cards, data.flowPositions]);
+    const customEdges = (data.customFlowEdges ?? []).filter(
+      (edge) => nodes.some((node) => node.id === edge.from) && nodes.some((node) => node.id === edge.to),
+    );
+    return { nodes, edges, customEdges };
+  }, [data.accounts, data.cards, data.flowPositions, data.customFlowEdges]);
 
   const patch = <K extends keyof DashboardData>(key: K, value: DashboardData[K]) => setData((current) => ({ ...current, [key]: value }));
   const copyExecution = async () => {
@@ -337,6 +344,15 @@ export default function App() {
     const next = { ...data.flowPositions };
     nodeIds.forEach((nodeId) => delete next[nodeId]);
     patch("flowPositions", next);
+  };
+  const addCustomEdge = (from: string, to: string) => {
+    if (from === to) return;
+    const exists = (data.customFlowEdges ?? []).some((edge) => edge.from === from && edge.to === to);
+    if (exists) return;
+    patch("customFlowEdges", [...(data.customFlowEdges ?? []), { id: newId(), from, to }]);
+  };
+  const removeCustomEdge = (edgeId: string) => {
+    patch("customFlowEdges", (data.customFlowEdges ?? []).filter((edge) => edge.id !== edgeId));
   };
 
   return (
@@ -433,7 +449,10 @@ export default function App() {
           <EditableFlow
             nodes={expenseFlow.nodes}
             edges={expenseFlow.edges}
+            customEdges={expenseFlow.customEdges}
             onMove={updateFlowPosition}
+            onAddCustomEdge={addCustomEdge}
+            onRemoveCustomEdge={removeCustomEdge}
             action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
           />
           {!isView && (
@@ -750,15 +769,66 @@ const minScale = 0.4;
 const maxScale = 2.5;
 const initialViewport: Viewport = { scale: 1, x: 0, y: 0 };
 
-function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edges: FlowEdge[]; onMove: (nodeId: string, position: FlowPosition) => void; action?: ReactNode }) {
+function EditableFlow({
+  nodes,
+  edges,
+  customEdges,
+  onMove,
+  onAddCustomEdge,
+  onRemoveCustomEdge,
+  action,
+}: {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  customEdges: CustomFlowEdge[];
+  onMove: (nodeId: string, position: FlowPosition) => void;
+  onAddCustomEdge: (from: string, to: string) => void;
+  onRemoveCustomEdge: (edgeId: string) => void;
+  action?: ReactNode;
+}) {
   const readOnly = useReadOnly();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const dragRef = useRef<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; moved: boolean } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; vx: number; vy: number } | null>(null);
   const [viewport, setViewport] = useState<Viewport>(initialViewport);
+  const [connectMode, setConnectMode] = useState(false);
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const viewportRef = useRef<Viewport>(initialViewport);
   viewportRef.current = viewport;
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
+  useEffect(() => {
+    if (!connectMode) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setConnectMode(false);
+        setConnectFrom(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [connectMode]);
+
+  useEffect(() => {
+    if (readOnly && connectMode) {
+      setConnectMode(false);
+      setConnectFrom(null);
+    }
+  }, [readOnly, connectMode]);
+
+  const handleNodeClick = (node: FlowNode) => {
+    if (!connectMode) return;
+    if (!connectFrom) {
+      setConnectFrom(node.id);
+      return;
+    }
+    if (connectFrom === node.id) {
+      setConnectFrom(null);
+      return;
+    }
+    onAddCustomEdge(connectFrom, node.id);
+    setConnectFrom(null);
+  };
 
   const toContentCoords = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -776,6 +846,9 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
       id: node.id,
       offsetX: coords.x - node.x,
       offsetY: coords.y - node.y,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -785,12 +858,20 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
     if (!drag) return;
     const coords = toContentCoords(event.clientX, event.clientY);
     if (!coords) return;
+    if (!drag.moved) {
+      const dist = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+      if (dist < 4) return;
+      drag.moved = true;
+    }
     onMove(drag.id, { x: coords.x - drag.offsetX, y: coords.y - drag.offsetY });
   };
 
-  const stopDrag = (event: PointerEvent<HTMLButtonElement>) => {
+  const stopDrag = (event: PointerEvent<HTMLButtonElement>, node: FlowNode) => {
+    const drag = dragRef.current;
+    const wasMoved = drag?.moved ?? false;
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (!wasMoved) handleNodeClick(node);
   };
 
   const startPan = (event: PointerEvent<HTMLDivElement>) => {
@@ -850,7 +931,19 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
             <Maximize2 size={14} />
           </button>
         </div>
-        {!readOnly && action}
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-pressed={connectMode}
+              onClick={() => { setConnectFrom(null); setConnectMode((value) => !value); }}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${connectMode ? "bg-teal-600 text-white hover:bg-teal-700 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400" : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"}`}
+            >
+              {connectMode ? (connectFrom ? "두 번째 노드 선택…" : "연결 모드 ON · ESC로 종료") : "연결 추가"}
+            </button>
+            {action}
+          </div>
+        )}
       </div>
       <div
         ref={canvasRef}
@@ -874,7 +967,7 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
               if (!from || !to) return null;
               return (
                 <line
-                  key={`${edge.from}-${edge.to}`}
+                  key={`auto-${edge.from}-${edge.to}`}
                   x1={from.x + 180}
                   y1={from.y + 42}
                   x2={to.x}
@@ -886,17 +979,55 @@ function EditableFlow({ nodes, edges, onMove, action }: { nodes: FlowNode[]; edg
                 />
               );
             })}
+            {customEdges.map((edge) => {
+              const from = nodeMap.get(edge.from);
+              const to = nodeMap.get(edge.to);
+              if (!from || !to) return null;
+              return (
+                <line
+                  key={`custom-${edge.id}`}
+                  x1={from.x + 180}
+                  y1={from.y + 42}
+                  x2={to.x}
+                  y2={to.y + 42}
+                  className="text-teal-500 dark:text-teal-400"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  markerEnd="url(#arrow)"
+                />
+              );
+            })}
           </svg>
+          {!readOnly && customEdges.map((edge) => {
+            const from = nodeMap.get(edge.from);
+            const to = nodeMap.get(edge.to);
+            if (!from || !to) return null;
+            const cx = (from.x + 180 + to.x) / 2;
+            const cy = (from.y + 42 + to.y + 42) / 2;
+            return (
+              <button
+                key={`delete-${edge.id}`}
+                type="button"
+                title="연결 삭제"
+                aria-label="연결 삭제"
+                className="absolute inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white shadow transition hover:bg-rose-600"
+                style={{ transform: `translate(${cx - 12}px, ${cy - 12}px)` }}
+                onClick={(event) => { event.stopPropagation(); onRemoveCustomEdge(edge.id); }}
+              >
+                ×
+              </button>
+            );
+          })}
           {nodes.map((node) => (
             <button
               key={node.id}
               type="button"
-              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
               style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
               onPointerDown={(event) => startDrag(event, node)}
               onPointerMove={moveDrag}
-              onPointerUp={stopDrag}
-              onPointerCancel={stopDrag}
+              onPointerUp={(event) => stopDrag(event, node)}
+              onPointerCancel={(event) => stopDrag(event, node)}
             >
               <BrandIcon brand={node.brand} hint={node.brandKind} size={40} />
               <span className="flex min-w-0 flex-col">
