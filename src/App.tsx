@@ -286,9 +286,6 @@ export default function App() {
       nodes.push({ id: key, title: accountLabel(item), subtitle: item.type, tone: "indigo", brand: item.bank, brandKind: "bank", ...position(key, { x: 570, y: 380 + index * 110 }) });
     });
 
-    if (salary && living) edges.push({ from: flowKey("account", salary.id), to: flowKey("account", living.id) });
-    if (living) investments.forEach((item) => edges.push({ from: flowKey("account", living.id), to: flowKey("account", item.id) }));
-
     const matchAccount = (settlement: string) => {
       const trimmed = settlement.trim();
       if (!trimmed) return undefined;
