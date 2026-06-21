@@ -37,7 +37,7 @@ type VariableExpense = { id: string; date: string; category: ExpenseCategory; am
 type SideIncome = { id: string; name: string; amount: number };
 type InvestmentProduct = { id: string; destination: string; broker: string; ratio: number; accountType?: string; accountNumber?: string };
 type Account = { id: string; bank: string; name: string; number: string; type: AccountType };
-type Card = { id: string; name: string; issuer: string; settlementAccount: string };
+type Card = { id: string; name: string; issuer: string; settlementAccount: string; settlementAccountId?: string };
 type FlowPosition = { x: number; y: number };
 type FlowNode = { id: string; title: string; subtitle: string; x: number; y: number; tone: "teal" | "indigo" | "amber" | "zinc"; brand?: string; brandKind?: BrandKind };
 type FlowEdge = { from: string; to: string };
@@ -291,7 +291,9 @@ export default function App() {
     data.cards.forEach((card, index) => {
       const cardKey = flowKey("card", card.id);
       nodes.push({ id: cardKey, title: card.name || "카드", subtitle: card.issuer || "카드사", tone: "zinc", brand: card.issuer, brandKind: "card", ...position(cardKey, { x: 28, y: 320 + index * 110 }) });
-      const matched = matchAccount(card.settlementAccount || "");
+      const matched = card.settlementAccountId
+        ? data.accounts.find((item) => item.id === card.settlementAccountId)
+        : matchAccount(card.settlementAccount || "");
       if (matched) {
         edges.push({ from: cardKey, to: flowKey("account", matched.id) });
       } else if (card.settlementAccount) {
@@ -456,7 +458,12 @@ export default function App() {
                   rows={data.cards.map((item) => [
                     <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
                     <BrandField value={item.issuer} kind="card" onChange={(value) => updateCard(item.id, { issuer: value })} />,
-                    <Text value={item.settlementAccount} onChange={(value) => updateCard(item.id, { settlementAccount: value })} />,
+                    <SettlementAccountSelect
+                      value={item.settlementAccountId ?? ""}
+                      legacyText={item.settlementAccount}
+                      accounts={data.accounts}
+                      onChange={(value) => updateCard(item.id, { settlementAccountId: value, settlementAccount: "" })}
+                    />,
                     <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
                   ])}
                 />
@@ -1134,6 +1141,39 @@ function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (va
       {!value && <option value="">선택</option>}
       {hasCustom && <option value={value}>{value}</option>}
       {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+    </select>
+  );
+}
+
+function SettlementAccountSelect({
+  value,
+  legacyText,
+  accounts,
+  onChange,
+}: {
+  value: string;
+  legacyText: string;
+  accounts: Account[];
+  onChange: (value: string) => void;
+}) {
+  const readOnly = useReadOnly();
+  const matched = accounts.find((account) => account.id === value);
+  const display = matched
+    ? `${getBrand(matched.bank, matched.type === "투자계좌" ? "sec" : "bank")?.name ?? matched.bank} ${matched.name}`.trim()
+    : legacyText || "";
+  if (readOnly) {
+    return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{display || "-"}</span>;
+  }
+  return (
+    <select className="field h-10 sm:min-w-44" value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{legacyText ? `(${legacyText}) — 선택 안 됨` : "선택 안 함"}</option>
+      {accounts.map((account) => {
+        const brandName = getBrand(account.bank, account.type === "투자계좌" ? "sec" : "bank")?.name ?? account.bank;
+        const label = `${brandName} ${account.name}`.trim() || account.type;
+        return (
+          <option key={account.id} value={account.id}>{label}</option>
+        );
+      })}
     </select>
   );
 }
