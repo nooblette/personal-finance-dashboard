@@ -222,13 +222,14 @@ export function BrandIcon({
       </span>
     );
   }
+  const fallbackText = found.kind === "sec" ? (found.name.match(/[가-힣]/)?.[0] ?? found.name[0] ?? "?") : found.initials;
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center px-1 text-[11px] font-bold tracking-tight ${found.bg} ${found.fg} ${radiusClass}`}
       style={{ width: size, height: size }}
       aria-label={found.name}
     >
-      {found.initials}
+      {fallbackText}
     </span>
   );
 }
