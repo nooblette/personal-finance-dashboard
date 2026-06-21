@@ -835,7 +835,6 @@ function EditableFlow({
   };
 
   const startDrag = (event: PointerEvent<HTMLButtonElement>, node: FlowNode) => {
-    if (readOnly) return;
     const coords = toContentCoords(event.clientX, event.clientY);
     if (!coords) return;
     event.stopPropagation();
@@ -1019,7 +1018,7 @@ function EditableFlow({
             <button
               key={node.id}
               type="button"
-              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
+              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
               style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
               onPointerDown={(event) => startDrag(event, node)}
               onPointerMove={moveDrag}
