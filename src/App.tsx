@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
-import { BrandIcon, BrandKind, BrandLabel, BrandSelect } from "./brandLibrary";
+import { BrandIcon, BrandKind, BrandLabel, BrandSelect, getBrand } from "./brandLibrary";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -239,7 +239,7 @@ export default function App() {
   const executionText = useMemo(() => {
     const lines = ["이번 달 투자", ""];
     Object.entries(investmentsByBroker).forEach(([broker, items]) => {
-      lines.push(broker);
+      lines.push(getBrand(broker, "sec")?.name ?? broker);
       items.forEach((item) => lines.push(`- ${item.destination || "투자상품"} ${won(investmentBaseAmount * (item.ratio / 100))}`));
       lines.push("");
     });
@@ -1344,7 +1344,8 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
     .filter((item) => item.ratio > 0)
     .map((item, index) => ({
       name: item.destination || "미지정",
-      broker: item.broker,
+      broker: getBrand(item.broker, "sec")?.name ?? item.broker,
+      brokerId: item.broker,
       value: item.ratio,
       amount: baseAmount * (item.ratio / 100),
       color: portfolioPalette[index % portfolioPalette.length],
@@ -1383,7 +1384,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
             <span className="min-w-0 flex-1 truncate font-medium">{item.name}</span>
             {item.broker && (
               <span className="hidden items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
-                <BrandIcon brand={item.broker} hint="sec" size={18} rounded="md" />
+                <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
                 {item.broker}
               </span>
             )}
