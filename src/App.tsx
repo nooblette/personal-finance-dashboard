@@ -1426,7 +1426,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
             <span className="min-w-0 truncate font-medium">{item.name}</span>
-            <span className="hidden min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
+            <span className="hidden min-w-0 items-center justify-end gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 sm:inline-flex">
               {item.broker && (
                 <>
                   <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
