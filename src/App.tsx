@@ -1381,6 +1381,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
       name: item.destination || "미지정",
       broker: getBrand(item.broker, "sec")?.name ?? item.broker,
       brokerId: item.broker,
+      accountType: item.accountType ?? "",
       value: item.ratio,
       amount: baseAmount * (item.ratio / 100),
       color: portfolioPalette[index % portfolioPalette.length],
@@ -1424,7 +1425,10 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
               {item.broker && (
                 <>
                   <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />
-                  <span className="min-w-0 truncate">{item.broker}</span>
+                  <span className="min-w-0 truncate">
+                    {item.broker}
+                    {item.accountType && <span className="ml-1 text-zinc-400 dark:text-zinc-500">· {item.accountType}</span>}
+                  </span>
                 </>
               )}
             </span>
