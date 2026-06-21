@@ -1588,7 +1588,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
         {data.map((item) => (
           <li
             key={item.name}
-            className="grid items-center gap-3 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_220px_44px_96px]"
+            className="grid items-center gap-3 text-sm grid-cols-[10px_minmax(0,1fr)_44px_96px] sm:grid-cols-[10px_minmax(0,1fr)_160px_44px_96px]"
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
             <span className="min-w-0 truncate font-medium">{item.name}</span>
