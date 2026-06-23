@@ -620,21 +620,25 @@ export default function App() {
                 <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">평균 {won(variableMonthlyAverage)} · 최대 {won(variableMonthlyMax)}</p>
               </div>
             </div>
-            <ChartBox>
-              <AreaChart data={variableByMonth} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="varGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
-                <XAxis dataKey="month" tickFormatter={formatMonthLabel} tickLine={false} axisLine={false} tick={chartTick} />
-                <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
-                <Tooltip content={<MoneyTooltip labelFormatter={formatMonthLabel} />} cursor={{ stroke: "#14b8a6", strokeOpacity: 0.2, strokeWidth: 1.5 }} />
-                <Area type="monotone" dataKey="amount" name="변동 지출" stroke="#14b8a6" strokeWidth={2.5} fill="url(#varGrad)" dot={{ r: 3, fill: "#14b8a6", strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }} />
-              </AreaChart>
-            </ChartBox>
+            {variableByMonth.length === 0 ? (
+              <p className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">변동 지출을 추가하면 월별 추세가 표시됩니다.</p>
+            ) : (
+              <ChartBox>
+                <AreaChart data={variableByMonth} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="varGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.45} />
+                      <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
+                  <XAxis dataKey="month" tickFormatter={formatMonthLabel} tickLine={false} axisLine={false} tick={chartTick} />
+                  <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
+                  <Tooltip content={<MoneyTooltip labelFormatter={formatMonthLabel} />} cursor={{ stroke: "#14b8a6", strokeOpacity: 0.2, strokeWidth: 1.5 }} />
+                  <Area type="monotone" dataKey="amount" name="변동 지출" stroke="#14b8a6" strokeWidth={2.5} fill="url(#varGrad)" dot={{ r: 3, fill: "#14b8a6", strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }} />
+                </AreaChart>
+              </ChartBox>
+            )}
           </div>
 
           <div className="mt-4 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
