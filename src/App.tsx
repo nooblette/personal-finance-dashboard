@@ -180,6 +180,30 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const meta = event.metaKey || event.ctrlKey;
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
+      if (meta && (event.key === "e" || event.key === "E")) {
+        event.preventDefault();
+        requestMode(mode === "edit" ? "view" : "edit");
+        return;
+      }
+      if (meta && (event.key === "s" || event.key === "S") && mode === "edit") {
+        event.preventDefault();
+        if (isDirty) saveDraft();
+        return;
+      }
+      if (event.key === "Escape" && mode === "edit" && !isTyping) {
+        requestMode("view");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, isDirty, draft, savedData]);
+
   const setData = (updater: (current: DashboardData) => DashboardData) => {
     if (isView) setSavedData(updater);
     else setDraft(updater);
