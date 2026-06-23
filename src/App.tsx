@@ -123,10 +123,15 @@ const defaultData: DashboardData = {
   customFlowEdges: [],
 };
 
+function prefersDark(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 function loadData(): DashboardData {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultData;
+    if (!saved) return { ...defaultData, darkMode: prefersDark() };
     const parsed = JSON.parse(saved) as Partial<DashboardData> & { sideIncome?: number };
     const next = { ...defaultData, ...parsed } as DashboardData;
     if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
