@@ -163,6 +163,7 @@ export default function App() {
   const [pendingMode, setPendingMode] = useState<Mode | null>(null);
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
+  const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
   const isView = mode === "view";
   const data = isView ? savedData : draft;
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(savedData), [draft, savedData]);
@@ -233,6 +234,23 @@ export default function App() {
   const totalSideIncome = data.sideIncomes.reduce((sum, item) => sum + item.amount, 0);
   const totalIncome = data.salary + totalSideIncome;
   const includedFixed = data.fixedExpenses.filter((item) => item.included !== false);
+  const sortedFixedExpenses = useMemo(() => {
+    const arr = [...data.fixedExpenses];
+    const dayOf = (item: FixedExpense) => {
+      const n = Number(item.paymentDay);
+      return Number.isFinite(n) && n > 0 ? n : Infinity;
+    };
+    switch (fixedSort) {
+      case "name": arr.sort((a, b) => a.name.localeCompare(b.name, "ko")); break;
+      case "amount-desc": arr.sort((a, b) => b.amount - a.amount); break;
+      case "amount-asc": arr.sort((a, b) => a.amount - b.amount); break;
+      case "day-asc": arr.sort((a, b) => dayOf(a) - dayOf(b)); break;
+      case "day-desc": arr.sort((a, b) => dayOf(b) - dayOf(a)); break;
+      case "method": arr.sort((a, b) => a.paymentMethod.localeCompare(b.paymentMethod, "ko")); break;
+      default: break;
+    }
+    return arr;
+  }, [data.fixedExpenses, fixedSort]);
   const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - includedFixed.reduce((sum, item) => sum + item.amount, 0), 0);
   const totalFixed = includedFixed.reduce((sum, item) => sum + item.amount, 0);
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
@@ -554,10 +572,32 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }])} />}>
+        <Section
+          title="고정 지출"
+          action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }])} />}
+        >
+          <div className="-mt-2 mb-3 flex items-center justify-end">
+            <label className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+              정렬
+              <select
+                className="field h-9 text-xs"
+                aria-label="정렬"
+                value={fixedSort}
+                onChange={(event) => setFixedSort(event.target.value as typeof fixedSort)}
+              >
+                <option value="input">입력 순</option>
+                <option value="name">이름 순</option>
+                <option value="amount-desc">금액 ↓</option>
+                <option value="amount-asc">금액 ↑</option>
+                <option value="day-asc">이체일 ↑</option>
+                <option value="day-desc">이체일 ↓</option>
+                <option value="method">결제수단 순</option>
+              </select>
+            </label>
+          </div>
           <Table
             columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
-            rows={data.fixedExpenses.map((item) => {
+            rows={sortedFixedExpenses.map((item) => {
               const kind = paymentKind(item.paymentMethod);
               return [
                 <IncludedToggle value={item.included !== false} onChange={(value) => updateFixed(item.id, { included: value })} />,
