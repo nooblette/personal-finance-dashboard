@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
-import { BrandIcon, BrandKind, BrandLabel, BrandSelect, getBrand } from "./brandLibrary";
+import { BrandIcon, BrandKind, BrandLabel, BrandSelect, brandsByKind, getBrand } from "./brandLibrary";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -1696,6 +1696,8 @@ const portfolioPalette = [
   "#0d9488", "#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#8b5cf6", "#0ea5e9", "#f97316", "#ec4899", "#14b8a6",
 ];
 
+const secMaxNameLen = brandsByKind("sec").reduce((max, brand) => Math.max(max, brand.name.length), 0);
+
 function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[]; baseAmount: number }) {
   const data = products
     .filter((item) => item.ratio > 0)
@@ -1709,8 +1711,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
       color: portfolioPalette[index % portfolioPalette.length],
     }));
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const maxBrokerLen = data.reduce((max, item) => Math.max(max, (item.broker || "").length), 0);
-  const brokerMinWidth = maxBrokerLen > 0 ? `${(maxBrokerLen * 1.2).toFixed(2)}em` : undefined;
+  const brokerMinWidth = `${(secMaxNameLen * 1.2).toFixed(2)}em`;
   if (data.length === 0) {
     return (
       <div className="mb-4 rounded-2xl bg-zinc-50/80 p-6 text-center text-sm text-zinc-500 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:text-zinc-400 dark:ring-zinc-800">
@@ -1747,7 +1748,7 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
             </span>
             <span
               className="hidden whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400 sm:block"
-              style={brokerMinWidth ? { minWidth: brokerMinWidth } : undefined}
+              style={{ minWidth: brokerMinWidth }}
             >
               {item.broker}
             </span>
