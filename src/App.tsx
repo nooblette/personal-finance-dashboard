@@ -718,18 +718,28 @@ export default function App() {
         </Section>
 
         <Section title="자산 운영 원칙">
-          {isView ? (
-            <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-              <ReactMarkdown>{data.principles}</ReactMarkdown>
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <textarea className="field min-h-56 resize-y py-3" value={data.principles} onChange={(event) => patch("principles", event.target.value)} />
-              <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <ReactMarkdown>{data.principles}</ReactMarkdown>
+          <EditableBox<string>
+            value={savedData.principles}
+            onSave={(next) => setSavedData((current) => ({ ...current, principles: next }))}
+            display={(value) => (
+              <div className="markdown-preview min-h-32 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+                <ReactMarkdown>{value}</ReactMarkdown>
               </div>
-            </div>
-          )}
+            )}
+            edit={(draft, setDraft) => (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <textarea
+                  className="field min-h-56 resize-y py-3"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  autoFocus
+                />
+                <div className="markdown-preview min-h-56 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                  <ReactMarkdown>{draft}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+          />
         </Section>
 
       </div>
@@ -1176,6 +1186,79 @@ function flowTone(tone: FlowNode["tone"]) {
   if (tone === "indigo") return "border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-50";
   if (tone === "amber") return "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50";
   return "border-zinc-200 bg-white text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50";
+}
+
+function EditableBox<T>({
+  value,
+  onSave,
+  display,
+  edit,
+}: {
+  value: T;
+  onSave: (next: T) => void;
+  display: (value: T) => ReactNode;
+  edit: (draft: T, setDraft: (next: T) => void) => ReactNode;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<T>(value);
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDraft(value);
+        setEditing(false);
+      } else if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        onSave(draft);
+        setEditing(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing, draft, value, onSave]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setDraft(value); setEditing(true); }}
+        className="group relative block w-full rounded-lg text-left transition hover:ring-2 hover:ring-teal-400/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+        aria-label="편집"
+      >
+        {display(value)}
+        <span className="pointer-events-none absolute right-2 top-2 inline-flex h-5 items-center rounded-full bg-teal-100 px-2 text-[10px] font-semibold text-teal-700 opacity-0 transition group-hover:opacity-100 dark:bg-teal-900/60 dark:text-teal-200">
+          편집
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg ring-2 ring-teal-500/40">
+      {edit(draft, setDraft)}
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          className="inline-flex h-9 items-center rounded-full border border-zinc-200 bg-white px-4 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          onClick={() => { setDraft(value); setEditing(false); }}
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-9 items-center rounded-full bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
+          onClick={() => { onSave(draft); setEditing(false); }}
+        >
+          저장
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
