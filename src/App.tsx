@@ -31,6 +31,7 @@ type FixedExpense = {
   cardIssuer?: string;
   cardName?: string;
   included?: boolean;
+  paymentDay?: string;
 };
 type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
@@ -494,15 +495,16 @@ export default function App() {
           )}
         </Section>
 
-        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true }])} />}>
+        <Section title="고정 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }])} />}>
           <Table
-            columns={["포함", "이름", "금액", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
+            columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
             rows={data.fixedExpenses.map((item) => {
               const kind = paymentKind(item.paymentMethod);
               return [
                 <IncludedToggle value={item.included !== false} onChange={(value) => updateFixed(item.id, { included: value })} />,
                 <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
                 <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
+                <PaymentDayField value={item.paymentDay ?? ""} onChange={(value) => updateFixed(item.id, { paymentDay: value })} />,
                 <PaymentMethodSelect value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
                 <PaymentBrandField
                   kind={kind}
@@ -1334,6 +1336,19 @@ function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value:
     >
       {value ? "포함" : "제외"}
     </button>
+  );
+}
+
+function PaymentDayField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const readOnly = useReadOnly();
+  if (readOnly) return <span className="block text-sm tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-12">{value || "-"}</span>;
+  return (
+    <input
+      className="field h-10 sm:min-w-20"
+      placeholder="예: 25일"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 
