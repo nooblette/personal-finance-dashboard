@@ -453,6 +453,31 @@ export default function App() {
             onAddCustomEdge={addCustomEdge}
             onRemoveCustomEdge={removeCustomEdge}
             onNodeOpen={setFlowNodeOpen}
+            onNodeDelete={(nodeId) => {
+              const [scope, rawId] = nodeId.split(":");
+              setSavedData((current) => {
+                const next = { ...current };
+                if (scope === "account") {
+                  next.accounts = current.accounts.filter((row) => row.id !== rawId);
+                  next.cards = current.cards.map((row) => (row.settlementAccountId === rawId ? { ...row, settlementAccountId: undefined } : row));
+                } else if (scope === "card") {
+                  next.cards = current.cards.filter((row) => row.id !== rawId);
+                }
+                next.customFlowEdges = (current.customFlowEdges ?? []).filter((edge) => edge.from !== nodeId && edge.to !== nodeId);
+                const positions = { ...current.flowPositions };
+                delete positions[nodeId];
+                next.flowPositions = positions;
+                return next;
+              });
+            }}
+            onAddAccount={() => setSavedData((current) => ({
+              ...current,
+              accounts: [...current.accounts, { id: newId(), bank: "", name: "새 계좌", number: "", type: "생활비통장" }],
+            }))}
+            onAddCard={() => setSavedData((current) => ({
+              ...current,
+              cards: [...current.cards, { id: newId(), name: "새 카드", issuer: "", settlementAccount: "" }],
+            }))}
             action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
           />
           {flowNodeOpen && (
@@ -927,6 +952,9 @@ function EditableFlow({
   onAddCustomEdge,
   onRemoveCustomEdge,
   onNodeOpen,
+  onNodeDelete,
+  onAddAccount,
+  onAddCard,
   action,
 }: {
   nodes: FlowNode[];
@@ -936,9 +964,12 @@ function EditableFlow({
   onAddCustomEdge: (from: string, to: string) => void;
   onRemoveCustomEdge: (edgeId: string) => void;
   onNodeOpen?: (nodeId: string) => void;
+  onNodeDelete?: (nodeId: string) => void;
+  onAddAccount?: () => void;
+  onAddCard?: () => void;
   action?: ReactNode;
 }) {
-  const readOnly = useReadOnly();
+  const readOnly = false;
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; offsetX: number; offsetY: number; startX: number; startY: number; moved: boolean } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; vx: number; vy: number } | null>(null);
@@ -1094,19 +1125,35 @@ function EditableFlow({
             <Maximize2 size={14} />
           </button>
         </div>
-        {!readOnly && (
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onAddAccount && (
             <button
               type="button"
-              aria-pressed={connectMode}
-              onClick={() => { setConnectFrom(null); setConnectMode((value) => !value); }}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${connectMode ? "bg-teal-600 text-white hover:bg-teal-700 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400" : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"}`}
+              onClick={onAddAccount}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
-              {connectMode ? (connectFrom ? "두 번째 노드 선택…" : "연결 모드 ON · ESC로 종료") : "연결 추가"}
+              <Plus size={14} /> 계좌
             </button>
-            {action}
-          </div>
-        )}
+          )}
+          {onAddCard && (
+            <button
+              type="button"
+              onClick={onAddCard}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <Plus size={14} /> 카드
+            </button>
+          )}
+          <button
+            type="button"
+            aria-pressed={connectMode}
+            onClick={() => { setConnectFrom(null); setConnectMode((value) => !value); }}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${connectMode ? "bg-teal-600 text-white hover:bg-teal-700 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400" : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"}`}
+          >
+            {connectMode ? (connectFrom ? "두 번째 노드 선택…" : "연결 모드 ON · ESC로 종료") : "연결 추가"}
+          </button>
+          {action}
+        </div>
       </div>
       <div
         ref={canvasRef}
@@ -1197,22 +1244,37 @@ function EditableFlow({
             );
           })}
           {nodes.map((node) => (
-            <button
+            <div
               key={node.id}
-              type="button"
-              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
+              className="group absolute"
               style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
-              onPointerDown={(event) => startDrag(event, node)}
-              onPointerMove={moveDrag}
-              onPointerUp={(event) => stopDrag(event, node)}
-              onPointerCancel={(event) => stopDrag(event, node)}
             >
-              <BrandIcon brand={node.brand} hint={node.brandKind} size={40} />
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-semibold">{node.title}</span>
-                <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
-              </span>
-            </button>
+              <button
+                type="button"
+                className={`flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
+                onPointerDown={(event) => startDrag(event, node)}
+                onPointerMove={moveDrag}
+                onPointerUp={(event) => stopDrag(event, node)}
+                onPointerCancel={(event) => stopDrag(event, node)}
+              >
+                <BrandIcon brand={node.brand} hint={node.brandKind} size={40} />
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-semibold">{node.title}</span>
+                  <span className="mt-0.5 truncate text-xs opacity-70">{node.subtitle}</span>
+                </span>
+              </button>
+              {onNodeDelete && !connectMode && (node.id.startsWith("account:") || node.id.startsWith("card:")) && (
+                <button
+                  type="button"
+                  title="노드 삭제"
+                  aria-label="노드 삭제"
+                  className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white opacity-0 shadow transition hover:bg-rose-600 group-hover:opacity-100 focus:opacity-100"
+                  onClick={(event) => { event.stopPropagation(); if (window.confirm("이 노드를 삭제할까요? 해당 계좌/카드와 연결된 자동·사용자 정의 연결선도 함께 정리됩니다.")) onNodeDelete(node.id); }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
