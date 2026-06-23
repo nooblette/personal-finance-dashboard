@@ -1557,6 +1557,8 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
       color: portfolioPalette[index % portfolioPalette.length],
     }));
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const maxBrokerLen = data.reduce((max, item) => Math.max(max, (item.broker || "").length), 0);
+  const brokerMinWidth = maxBrokerLen > 0 ? `${(maxBrokerLen * 1.2).toFixed(2)}em` : undefined;
   if (data.length === 0) {
     return (
       <div className="mb-4 rounded-2xl bg-zinc-50/80 p-6 text-center text-sm text-zinc-500 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:text-zinc-400 dark:ring-zinc-800">
@@ -1591,7 +1593,10 @@ function PortfolioDonut({ products, baseAmount }: { products: InvestmentProduct[
             <span className="hidden sm:block">
               {item.broker && <BrandIcon brand={item.brokerId} hint="sec" size={18} rounded="md" />}
             </span>
-            <span className="hidden whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400 sm:block">
+            <span
+              className="hidden whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400 sm:block"
+              style={brokerMinWidth ? { minWidth: brokerMinWidth } : undefined}
+            >
               {item.broker}
             </span>
             <span className="hidden sm:block">
