@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, ChevronDown, Clipboard, Maximize2, Minus, Moon, Plus, RefreshCw, Sun, Trash2, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, Clipboard, Maximize2, Minus, Moon, Pencil, Plus, RefreshCw, Sun, Trash2, Wallet, X } from "lucide-react";
 import { BrandIcon, BrandKind, BrandLabel, BrandSelect, brandsByKind, getBrand } from "./brandLibrary";
 
 type ExpenseCategory = string;
@@ -569,11 +569,16 @@ export default function App() {
           )}
         </Section>
 
-        <Section
-          title="고정 지출"
-          action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("fixedExpenses", [...data.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }])} />}
-        >
-          <div className="-mt-2 mb-3 flex items-center justify-end">
+        <Section title="고정 지출">
+          <div className="-mt-2 mb-3 flex items-center justify-between gap-2">
+            <Button
+              label="추가"
+              icon={<Plus size={16} />}
+              onClick={() => setSavedData((current) => ({
+                ...current,
+                fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }],
+              }))}
+            />
             <label className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
               정렬
               <select
@@ -592,33 +597,49 @@ export default function App() {
               </select>
             </label>
           </div>
-          <Table
-            columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명", ""]}
-            rows={sortedFixedExpenses.map((item) => {
+          <EditableTable<FixedExpense>
+            columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
+            items={sortedFixedExpenses}
+            displayCells={(item) => {
               const kind = paymentKind(item.paymentMethod);
+              const brandValue = kind === "card" ? item.cardIssuer : kind === "transfer" ? item.bank : "";
+              const detailValue = kind === "card" ? item.cardName : kind === "transfer" ? item.account : "";
               return [
-                <IncludedToggle value={item.included !== false} onChange={(value) => updateFixed(item.id, { included: value })} />,
-                <Text value={item.name} onChange={(value) => updateFixed(item.id, { name: value })} />,
-                <NumberBox value={item.amount} onChange={(value) => updateFixed(item.id, { amount: value })} />,
-                <PaymentDayField value={item.paymentDay ?? ""} onChange={(value) => updateFixed(item.id, { paymentDay: value })} />,
-                <PaymentMethodSelect value={item.paymentMethod} onChange={(value) => updateFixed(item.id, { paymentMethod: value })} />,
+                <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${item.included !== false ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>{item.included !== false ? "포함" : "제외"}</span>,
+                <span className="text-sm">{item.name || "-"}</span>,
+                <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
+                <span className="text-sm tabular-nums">{item.paymentDay ? `${item.paymentDay}일` : "-"}</span>,
+                <span className="text-sm">{item.paymentMethod || "-"}</span>,
+                kind === "other" ? <span className="text-sm text-zinc-400">-</span> : <BrandLabel brand={brandValue} hint={kind === "card" ? "card" : "bank"} size={24} />,
+                <span className="text-sm">{kind === "other" ? "-" : (detailValue || "-")}</span>,
+              ];
+            }}
+            editCells={(draft, setDraft) => {
+              const kind = paymentKind(draft.paymentMethod);
+              return [
+                <IncludedToggle value={draft.included !== false} onChange={(value) => setDraft({ ...draft, included: value })} />,
+                <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                <NumberBox value={draft.amount} onChange={(value) => setDraft({ ...draft, amount: value })} />,
+                <PaymentDayField value={draft.paymentDay ?? ""} onChange={(value) => setDraft({ ...draft, paymentDay: value })} />,
+                <PaymentMethodSelect value={draft.paymentMethod} onChange={(value) => setDraft({ ...draft, paymentMethod: value })} />,
                 <PaymentBrandField
                   kind={kind}
-                  cardValue={item.cardIssuer ?? ""}
-                  transferValue={item.bank ?? ""}
-                  onCardChange={(value) => updateFixed(item.id, { cardIssuer: value })}
-                  onTransferChange={(value) => updateFixed(item.id, { bank: value })}
+                  cardValue={draft.cardIssuer ?? ""}
+                  transferValue={draft.bank ?? ""}
+                  onCardChange={(value) => setDraft({ ...draft, cardIssuer: value })}
+                  onTransferChange={(value) => setDraft({ ...draft, bank: value })}
                 />,
                 <PaymentDetailField
                   kind={kind}
-                  cardValue={item.cardName ?? ""}
-                  transferValue={item.account ?? ""}
-                  onCardChange={(value) => updateFixed(item.id, { cardName: value })}
-                  onTransferChange={(value) => updateFixed(item.id, { account: value })}
+                  cardValue={draft.cardName ?? ""}
+                  transferValue={draft.account ?? ""}
+                  onCardChange={(value) => setDraft({ ...draft, cardName: value })}
+                  onTransferChange={(value) => setDraft({ ...draft, account: value })}
                 />,
-                <Delete onClick={() => patch("fixedExpenses", data.fixedExpenses.filter((row) => row.id !== item.id))} />,
               ];
-            })}
+            }}
+            onSave={(original, draft) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+            onDelete={(item) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.filter((row) => row.id !== item.id) }))}
           />
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
@@ -1183,6 +1204,119 @@ function flowTone(tone: FlowNode["tone"]) {
   if (tone === "indigo") return "border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-50";
   if (tone === "amber") return "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50";
   return "border-zinc-200 bg-white text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50";
+}
+
+function EditableTable<T extends { id: string }>({
+  columns,
+  items,
+  displayCells,
+  editCells,
+  onSave,
+  onDelete,
+  emptyMessage,
+}: {
+  columns: string[];
+  items: T[];
+  displayCells: (item: T) => ReactNode[];
+  editCells: (draft: T, setDraft: (next: T) => void) => ReactNode[];
+  onSave: (original: T, draft: T) => void;
+  onDelete?: (item: T) => void;
+  emptyMessage?: string;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<T | null>(null);
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+  const saveEdit = () => {
+    if (editingId && draft) {
+      const original = items.find((item) => item.id === editingId);
+      if (original) onSave(original, draft);
+    }
+    cancelEdit();
+  };
+
+  useEffect(() => {
+    if (!editingId) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelEdit();
+      } else if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        saveEdit();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId, draft, items]);
+
+  if (items.length === 0 && emptyMessage) {
+    return <p className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>;
+  }
+
+  const allColumns = [...columns, ""];
+  const rows: ReactNode[][] = items.map((item) => {
+    const isEditing = editingId === item.id && draft !== null;
+    if (isEditing) {
+      return [
+        ...editCells(draft!, setDraft as (next: T) => void),
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            title="취소"
+            aria-label="취소"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            onClick={cancelEdit}
+          >
+            <X size={14} />
+          </button>
+          <button
+            type="button"
+            title="저장"
+            aria-label="저장"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-teal-700 text-white transition hover:bg-teal-800 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
+            onClick={saveEdit}
+          >
+            <Check size={14} />
+          </button>
+        </div>,
+      ];
+    }
+    return [
+      ...displayCells(item),
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          title="편집"
+          aria-label="편집"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          onClick={() => { setEditingId(item.id); setDraft({ ...item }); }}
+        >
+          <Pencil size={14} />
+        </button>
+        {onDelete && (
+          <button
+            type="button"
+            title="삭제"
+            aria-label="삭제"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950"
+            onClick={() => onDelete(item)}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>,
+    ];
+  });
+
+  return (
+    <ViewModeContext.Provider value={false}>
+      <Table columns={allColumns} rows={rows} />
+    </ViewModeContext.Provider>
+  );
 }
 
 function EditableBox<T>({
