@@ -398,15 +398,17 @@ export default function App() {
           </div>
         </header>
 
-        <section className="grid gap-3 sm:grid-cols-3">
-          <IncomeMetric
-            salary={data.salary}
-            sideIncomes={data.sideIncomes}
-            totalIncome={totalIncome}
-            totalSideIncome={totalSideIncome}
-            onSalaryChange={(value) => patch("salary", value)}
-            onSideIncomesChange={(rows) => patch("sideIncomes", rows)}
-          />
+        <section className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+          <div className="col-span-2 sm:col-span-1">
+            <IncomeMetric
+              salary={data.salary}
+              sideIncomes={data.sideIncomes}
+              totalIncome={totalIncome}
+              totalSideIncome={totalSideIncome}
+              onSalaryChange={(value) => patch("salary", value)}
+              onSideIncomesChange={(rows) => patch("sideIncomes", rows)}
+            />
+          </div>
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${includedFixed.length}/${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
           <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
         </section>
