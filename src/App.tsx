@@ -367,15 +367,43 @@ export default function App() {
             <div>
               <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
             </div>
-            <IconToggle
-              label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
-              icon={data.darkMode ? <Sun size={16} /> : <Moon size={16} />}
-              onClick={() => {
-                const next = !data.darkMode;
-                setSavedData((current) => ({ ...current, darkMode: next }));
-                setDraft((current) => ({ ...current, darkMode: next }));
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <IconToggle
+                label="예시 데이터 비우기"
+                icon={<Trash2 size={16} />}
+                onClick={() => {
+                  if (!window.confirm("모든 항목(수입·지출·포트폴리오·계좌·카드 등)을 비웁니다. 다크모드/원칙 텍스트는 유지됩니다. 계속할까요?")) return;
+                  const cleared: DashboardData = {
+                    ...defaultData,
+                    salary: 0,
+                    sideIncomes: [],
+                    fixedExpenses: [],
+                    variableExpenses: [],
+                    investmentProducts: [],
+                    accounts: [],
+                    cards: [],
+                    investmentBase: null,
+                    flowPositions: {},
+                    customFlowEdges: [],
+                    darkMode: data.darkMode,
+                    principles: data.principles,
+                    expenseCategories: data.expenseCategories,
+                    analysisPeriod: data.analysisPeriod,
+                  };
+                  setSavedData(cleared);
+                  setDraft(cleared);
+                }}
+              />
+              <IconToggle
+                label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
+                icon={data.darkMode ? <Sun size={16} /> : <Moon size={16} />}
+                onClick={() => {
+                  const next = !data.darkMode;
+                  setSavedData((current) => ({ ...current, darkMode: next }));
+                  setDraft((current) => ({ ...current, darkMode: next }));
+                }}
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <ModeTabs mode={mode} onChange={requestMode} dirty={isDirty} />
