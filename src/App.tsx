@@ -895,6 +895,7 @@ function EditableFlow({
   const [viewport, setViewport] = useState<Viewport>(initialViewport);
   const [connectMode, setConnectMode] = useState(false);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null);
   const viewportRef = useRef<Viewport>(initialViewport);
   viewportRef.current = viewport;
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
@@ -922,14 +923,17 @@ function EditableFlow({
     if (!connectMode) return;
     if (!connectFrom) {
       setConnectFrom(node.id);
+      setHoverPoint({ x: node.x + 90, y: node.y + 42 });
       return;
     }
     if (connectFrom === node.id) {
       setConnectFrom(null);
+      setHoverPoint(null);
       return;
     }
     onAddCustomEdge(connectFrom, node.id);
     setConnectFrom(null);
+    setHoverPoint(null);
   };
 
   const toContentCoords = (clientX: number, clientY: number) => {
@@ -988,6 +992,10 @@ function EditableFlow({
   };
 
   const movePan = (event: PointerEvent<HTMLDivElement>) => {
+    if (connectMode && connectFrom) {
+      const coords = toContentCoords(event.clientX, event.clientY);
+      if (coords) setHoverPoint(coords);
+    }
     const pan = panRef.current;
     if (!pan) return;
     setViewport((current) => ({ ...current, x: pan.vx + (event.clientX - pan.startX), y: pan.vy + (event.clientY - pan.startY) }));
@@ -1099,6 +1107,21 @@ function EditableFlow({
                 />
               );
             })}
+            {connectMode && connectFrom && hoverPoint && nodeMap.get(connectFrom) && (() => {
+              const from = nodeMap.get(connectFrom)!;
+              return (
+                <line
+                  x1={from.x + 90}
+                  y1={from.y + 42}
+                  x2={hoverPoint.x}
+                  y2={hoverPoint.y}
+                  className="text-teal-400 dark:text-teal-300"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray="6 4"
+                />
+              );
+            })()}
           </svg>
           {!readOnly && customEdges.map((edge) => {
             const from = nodeMap.get(edge.from);
@@ -1112,11 +1135,11 @@ function EditableFlow({
                 type="button"
                 title="연결 삭제"
                 aria-label="연결 삭제"
-                className="absolute inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white shadow transition hover:bg-rose-600"
-                style={{ transform: `translate(${cx - 12}px, ${cy - 12}px)` }}
+                className="group absolute flex h-3 w-3 items-center justify-center rounded-full bg-rose-300/70 text-[0px] text-white transition-all hover:h-6 hover:w-6 hover:bg-rose-500 hover:text-xs hover:font-bold hover:shadow dark:bg-rose-700/70"
+                style={{ transform: `translate(${cx - 6}px, ${cy - 6}px)` }}
                 onClick={(event) => { event.stopPropagation(); onRemoveCustomEdge(edge.id); }}
               >
-                ×
+                <span className="leading-none">×</span>
               </button>
             );
           })}
