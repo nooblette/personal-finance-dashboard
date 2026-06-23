@@ -160,6 +160,7 @@ export default function App() {
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
   const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
+  const [flowNodeOpen, setFlowNodeOpen] = useState<string | null>(null);
   const data = savedData;
 
   useEffect(() => {
@@ -451,8 +452,19 @@ export default function App() {
             onMove={updateFlowPosition}
             onAddCustomEdge={addCustomEdge}
             onRemoveCustomEdge={removeCustomEdge}
+            onNodeOpen={setFlowNodeOpen}
             action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
           />
+          {flowNodeOpen && (
+            <FlowNodeDialog
+              nodeId={flowNodeOpen}
+              accounts={data.accounts}
+              cards={data.cards}
+              onClose={() => setFlowNodeOpen(null)}
+              onSaveAccount={(id, next) => setSavedData((current) => ({ ...current, accounts: current.accounts.map((row) => (row.id === id ? { ...next, id } : row)) }))}
+              onSaveCard={(id, next) => setSavedData((current) => ({ ...current, cards: current.cards.map((row) => (row.id === id ? { ...next, id } : row)) }))}
+            />
+          )}
           <div className="mt-5 flex flex-col gap-5">
             <div className="min-w-0">
               <div className="mb-3 flex items-center justify-between gap-2">
@@ -755,6 +767,124 @@ export default function App() {
   );
 }
 
+function FlowNodeDialog({
+  nodeId,
+  accounts,
+  cards,
+  onClose,
+  onSaveAccount,
+  onSaveCard,
+}: {
+  nodeId: string;
+  accounts: Account[];
+  cards: Card[];
+  onClose: () => void;
+  onSaveAccount: (id: string, next: Account) => void;
+  onSaveCard: (id: string, next: Card) => void;
+}) {
+  const [scope, rawId] = nodeId.split(":");
+  const isAccount = scope === "account";
+  const isCard = scope === "card";
+  const original = isAccount
+    ? accounts.find((account) => account.id === rawId)
+    : isCard
+      ? cards.find((card) => card.id === rawId)
+      : null;
+  const [draft, setDraft] = useState<Account | Card | null>(original ? { ...original } : null);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  if (!original || !draft) {
+    return (
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 px-4 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">이 노드의 데이터를 찾을 수 없습니다. (settlement 노드일 수 있습니다)</p>
+          <div className="mt-4 flex justify-end">
+            <button type="button" className="inline-flex h-9 items-center rounded-full bg-teal-700 px-4 text-sm font-semibold text-white dark:bg-teal-500 dark:text-zinc-950" onClick={onClose}>닫기</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const save = () => {
+    if (isAccount) onSaveAccount(rawId, draft as Account);
+    if (isCard) onSaveCard(rawId, draft as Card);
+    onClose();
+  };
+
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+        <h2 className="text-base font-bold tracking-tight">{isAccount ? "계좌 편집" : "카드 편집"}</h2>
+        <ViewModeContext.Provider value={false}>
+          <div className="mt-4 flex flex-col gap-3">
+            {isAccount && (() => {
+              const account = draft as Account;
+              return (
+                <>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">은행/증권사</span>
+                    <BrandField value={account.bank} kind={account.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => setDraft({ ...account, bank: value })} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">계좌명</span>
+                    <input className="field h-10" value={account.name} onChange={(event) => setDraft({ ...account, name: event.target.value })} autoFocus />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">계좌번호</span>
+                    <input className="field h-10" value={account.number} onChange={(event) => setDraft({ ...account, number: event.target.value })} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">유형</span>
+                    <select className="field h-10" value={account.type} onChange={(event) => setDraft({ ...account, type: event.target.value as AccountType })}>
+                      {accountTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  </label>
+                </>
+              );
+            })()}
+            {isCard && (() => {
+              const card = draft as Card;
+              return (
+                <>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">카드명</span>
+                    <input className="field h-10" value={card.name} onChange={(event) => setDraft({ ...card, name: event.target.value })} autoFocus />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">카드사</span>
+                    <BrandField value={card.issuer} kind="card" onChange={(value) => setDraft({ ...card, issuer: value })} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">결제계좌</span>
+                    <SettlementAccountSelect
+                      value={card.settlementAccountId ?? ""}
+                      legacyText={card.settlementAccount}
+                      accounts={accounts}
+                      onChange={(value) => setDraft({ ...card, settlementAccountId: value, settlementAccount: "" })}
+                    />
+                  </label>
+                </>
+              );
+            })()}
+          </div>
+        </ViewModeContext.Provider>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button type="button" className="inline-flex h-9 items-center rounded-full border border-zinc-200 bg-white px-4 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200" onClick={onClose}>취소</button>
+          <button type="button" className="inline-flex h-9 items-center rounded-full bg-teal-700 px-4 text-xs font-semibold text-white dark:bg-teal-500 dark:text-zinc-950" onClick={save}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PeriodTabs({ value, onChange }: { value: Period; onChange: (value: Period) => void }) {
   const items: { value: Period; label: string }[] = [
     { value: "monthly", label: "월별" },
@@ -796,6 +926,7 @@ function EditableFlow({
   onMove,
   onAddCustomEdge,
   onRemoveCustomEdge,
+  onNodeOpen,
   action,
 }: {
   nodes: FlowNode[];
@@ -804,6 +935,7 @@ function EditableFlow({
   onMove: (nodeId: string, position: FlowPosition) => void;
   onAddCustomEdge: (from: string, to: string) => void;
   onRemoveCustomEdge: (edgeId: string) => void;
+  onNodeOpen?: (nodeId: string) => void;
   action?: ReactNode;
 }) {
   const readOnly = useReadOnly();
@@ -838,7 +970,10 @@ function EditableFlow({
   }, [readOnly, connectMode]);
 
   const handleNodeClick = (node: FlowNode) => {
-    if (!connectMode) return;
+    if (!connectMode) {
+      onNodeOpen?.(node.id);
+      return;
+    }
     if (!connectFrom) {
       setConnectFrom(node.id);
       setHoverPoint({ x: node.x + 90, y: node.y + 42 });
