@@ -485,36 +485,60 @@ export default function App() {
           <Metric title="가처분소득" value={won(disposableIncome)} detail={variableMonthlyAverage > 0 ? `변동 지출 월평균 ${won(variableMonthlyAverage)} 차감` : "변동 지출 없음"} icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
-        <Section title="포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0, accountType: "위탁(일반)" }])} />}>
-          <div className="mb-4 flex flex-wrap items-end gap-3">
-            <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => patch("investmentBase", value)} />
-            <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
-            {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
+        <Section title="포트폴리오">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => setSavedData((current) => ({ ...current, investmentBase: value }))} />
+              <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
+              {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
+            </div>
+            <Button
+              label="추가"
+              icon={<Plus size={16} />}
+              onClick={() => setSavedData((current) => ({
+                ...current,
+                investmentProducts: [...current.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0, accountType: "위탁(일반)" }],
+              }))}
+            />
           </div>
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
-          {!isView && (
-            <Table
-              columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액", ""]}
-              rows={data.investmentProducts.map((item) => [
-                <Text value={item.destination} onChange={(value) => updateInvestment(item.id, { destination: value })} />,
-                <BrandField value={item.broker} kind="sec" onChange={(value) => updateInvestment(item.id, { broker: value })} />,
-                <InvestmentAccountTypeSelect value={item.accountType} onChange={(value) => updateInvestment(item.id, { accountType: value })} />,
-                <Text value={item.accountNumber ?? ""} onChange={(value) => updateInvestment(item.id, { accountNumber: value })} />,
-                <NumberBox value={item.ratio} suffix="%" onChange={(value) => updateInvestment(item.id, { ratio: Math.min(value, 100) })} />,
-                <span className="font-medium">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
-                <Delete onClick={() => patch("investmentProducts", data.investmentProducts.filter((row) => row.id !== item.id))} />,
-              ])}
-            />
-          )}
-          {!isView && (
-            <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-base font-semibold">투자 실행</h3>
-                <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
-              </div>
-              <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
+          <EditableTable<InvestmentProduct>
+            columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
+            items={data.investmentProducts}
+            emptyMessage="투자 항목을 추가하면 표시됩니다."
+            displayCells={(item) => [
+              <span className="text-sm">{item.destination || "-"}</span>,
+              <BrandLabel brand={item.broker} hint="sec" size={24} />,
+              <span className="text-sm">{item.accountType}</span>,
+              <span className="text-sm tabular-nums">{item.accountNumber || "-"}</span>,
+              <span className="text-sm tabular-nums">{item.ratio}%</span>,
+              <span className="text-sm font-medium tabular-nums">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
+            ]}
+            editCells={(draft, setDraft) => [
+              <Text value={draft.destination} onChange={(value) => setDraft({ ...draft, destination: value })} />,
+              <BrandField value={draft.broker} kind="sec" onChange={(value) => setDraft({ ...draft, broker: value })} />,
+              <InvestmentAccountTypeSelect value={draft.accountType} onChange={(value) => setDraft({ ...draft, accountType: value })} />,
+              <Text value={draft.accountNumber ?? ""} onChange={(value) => setDraft({ ...draft, accountNumber: value })} />,
+              <NumberBox value={draft.ratio} suffix="%" onChange={(value) => setDraft({ ...draft, ratio: Math.min(value, 100) })} />,
+              <span className="text-sm font-medium tabular-nums text-zinc-500">{won(investmentBaseAmount * (draft.ratio / 100))}</span>,
+            ]}
+            onSave={(original, draft) => {
+              const next = data.investmentProducts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row));
+              if (next.reduce((sum, row) => sum + row.ratio, 0) > 100) {
+                window.alert("투자 비율 합계가 100%를 초과할 수 없습니다.");
+                return;
+              }
+              setSavedData((current) => ({ ...current, investmentProducts: next }));
+            }}
+            onDelete={(item) => setSavedData((current) => ({ ...current, investmentProducts: current.investmentProducts.filter((row) => row.id !== item.id) }))}
+          />
+          <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-base font-semibold">투자 실행</h3>
+              <Button label={copyLabel} icon={<Clipboard size={16} />} onClick={copyExecution} />
             </div>
-          )}
+            <pre className="whitespace-pre-wrap text-sm leading-6">{executionText}</pre>
+          </div>
         </Section>
 
         <Section title="지출 흐름도">
