@@ -1341,14 +1341,19 @@ function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value:
 
 function PaymentDayField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
-  if (readOnly) return <span className="block text-sm tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-12">{value || "-"}</span>;
+  const label = value ? `${value}일` : "";
+  if (readOnly) return <span className="block text-sm tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-12">{label || "-"}</span>;
   return (
-    <input
+    <select
       className="field h-10 sm:min-w-20"
-      placeholder="예: 25일"
       value={value}
       onChange={(event) => onChange(event.target.value)}
-    />
+    >
+      <option value="">선택</option>
+      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+        <option key={day} value={String(day)}>{day}일</option>
+      ))}
+    </select>
   );
 }
 
