@@ -644,7 +644,23 @@ export default function App() {
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
         </Section>
 
-        <Section title="변동 지출" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => { patch("variableExpenses", [...data.variableExpenses, { id: newId(), date: new Date().toISOString().slice(0, 10), category: data.expenseCategories[0] ?? "기타", amount: 0, memo: "" }]); setVariableDetailOpen(true); }} />}>
+        <Section title="변동 지출">
+          <div className="-mt-2 mb-3 flex items-center justify-end">
+            <Button
+              label="추가"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setSavedData((current) => ({
+                  ...current,
+                  variableExpenses: [
+                    ...current.variableExpenses,
+                    { id: newId(), date: new Date().toISOString().slice(0, 10), category: current.expenseCategories[0] ?? "기타", amount: 0, memo: "" },
+                  ],
+                }));
+                setVariableDetailOpen(true);
+              }}
+            />
+          </div>
           <button
             type="button"
             className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
@@ -659,15 +675,28 @@ export default function App() {
           </button>
           {variableDetailOpen && (
             <div className="mt-3">
-              <Table
-                columns={["날짜", "카테고리", "금액", "메모", ""]}
-                rows={data.variableExpenses.map((item) => [
-                  isView ? <span className="block text-sm text-zinc-800 dark:text-zinc-100">{item.date}</span> : <input className="field h-10" type="date" value={item.date} onChange={(event) => updateVariable(item.id, { date: event.target.value })} />,
-                  <CategorySelect value={item.category} options={data.expenseCategories} onChange={(value) => updateVariable(item.id, { category: value })} onAddCategory={(name) => patch("expenseCategories", Array.from(new Set([...data.expenseCategories, name])))} />,
-                  <NumberBox value={item.amount} onChange={(value) => updateVariable(item.id, { amount: value })} />,
-                  <Text value={item.memo} onChange={(value) => updateVariable(item.id, { memo: value })} />,
-                  <Delete onClick={() => patch("variableExpenses", data.variableExpenses.filter((row) => row.id !== item.id))} />,
-                ])}
+              <EditableTable<VariableExpense>
+                columns={["날짜", "카테고리", "금액", "메모"]}
+                items={data.variableExpenses}
+                displayCells={(item) => [
+                  <span className="text-sm tabular-nums">{item.date}</span>,
+                  <span className="text-sm">{item.category}</span>,
+                  <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
+                  <span className="text-sm">{item.memo || "-"}</span>,
+                ]}
+                editCells={(draft, setDraft) => [
+                  <input className="field h-10" type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} />,
+                  <CategorySelect
+                    value={draft.category}
+                    options={data.expenseCategories}
+                    onChange={(value) => setDraft({ ...draft, category: value })}
+                    onAddCategory={(name) => setSavedData((current) => ({ ...current, expenseCategories: Array.from(new Set([...current.expenseCategories, name])) }))}
+                  />,
+                  <NumberBox value={draft.amount} onChange={(value) => setDraft({ ...draft, amount: value })} />,
+                  <Text value={draft.memo} onChange={(value) => setDraft({ ...draft, memo: value })} />,
+                ]}
+                onSave={(original, draft) => setSavedData((current) => ({ ...current, variableExpenses: current.variableExpenses.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                onDelete={(item) => setSavedData((current) => ({ ...current, variableExpenses: current.variableExpenses.filter((row) => row.id !== item.id) }))}
               />
             </div>
           )}
