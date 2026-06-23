@@ -62,9 +62,8 @@ type DashboardData = {
 };
 
 const STORAGE_KEY = "personal-finance-dashboard:v1";
-const ViewModeContext = createContext(false);
+const ViewModeContext = createContext(true);
 const useReadOnly = () => useContext(ViewModeContext);
-type Mode = "view" | "edit";
 const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
 const paymentMethodOptions: string[] = ["카드", "계좌이체", "자동이체", "현금", "기타"];
 const investmentAccountTypeOptions: string[] = ["위탁(일반)", "ISA", "해외주식", "연금저축", "IRP", "CMA", "기타"];
@@ -158,15 +157,10 @@ function loadData(): DashboardData {
 
 export default function App() {
   const [savedData, setSavedData] = useState<DashboardData>(loadData);
-  const [draft, setDraft] = useState<DashboardData>(() => savedData);
-  const [mode, setMode] = useState<Mode>("view");
-  const [pendingMode, setPendingMode] = useState<Mode | null>(null);
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
   const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
-  const isView = mode === "view";
-  const data = isView ? savedData : draft;
-  const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(savedData), [draft, savedData]);
+  const data = savedData;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
@@ -175,61 +169,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", data.darkMode);
   }, [data.darkMode]);
-
-  useEffect(() => {
-    if (mode === "edit") setDraft(savedData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      const meta = event.metaKey || event.ctrlKey;
-      const target = event.target as HTMLElement | null;
-      const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
-      if (meta && (event.key === "e" || event.key === "E")) {
-        event.preventDefault();
-        requestMode(mode === "edit" ? "view" : "edit");
-        return;
-      }
-      if (meta && (event.key === "s" || event.key === "S") && mode === "edit") {
-        event.preventDefault();
-        if (isDirty) saveDraft();
-        return;
-      }
-      if (event.key === "Escape" && mode === "edit" && !isTyping) {
-        requestMode("view");
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isDirty, draft, savedData]);
-
-  const setData = (updater: (current: DashboardData) => DashboardData) => {
-    if (isView) setSavedData(updater);
-    else setDraft(updater);
-  };
-
-  const saveDraft = () => setSavedData(draft);
-  const discardDraft = () => setDraft(savedData);
-  const requestMode = (next: Mode) => {
-    if (next === mode) return;
-    if (mode === "edit" && isDirty) {
-      setPendingMode(next);
-      return;
-    }
-    setMode(next);
-  };
-  const resolvePending = (action: "save" | "discard" | "cancel") => {
-    if (action === "cancel" || pendingMode === null) {
-      setPendingMode(null);
-      return;
-    }
-    if (action === "save") setSavedData(draft);
-    if (action === "discard") setDraft(savedData);
-    setMode(pendingMode);
-    setPendingMode(null);
-  };
 
   const totalSideIncome = data.sideIncomes.reduce((sum, item) => sum + item.amount, 0);
   const totalIncome = data.salary + totalSideIncome;
@@ -365,45 +304,37 @@ export default function App() {
     return { nodes, edges, customEdges };
   }, [data.accounts, data.cards, data.flowPositions, data.customFlowEdges]);
 
-  const patch = <K extends keyof DashboardData>(key: K, value: DashboardData[K]) => setData((current) => ({ ...current, [key]: value }));
   const copyExecution = async () => {
     await navigator.clipboard.writeText(executionText);
     setCopyLabel("복사됨");
     window.setTimeout(() => setCopyLabel("복사"), 1200);
   };
 
-  const updateFixed = (id: string, item: Partial<FixedExpense>) =>
-    patch("fixedExpenses", data.fixedExpenses.map((row) => (row.id === id ? { ...row, ...item } : row)));
-  const updateVariable = (id: string, item: Partial<VariableExpense>) =>
-    patch("variableExpenses", data.variableExpenses.map((row) => (row.id === id ? { ...row, ...item } : row)));
-  const updateInvestment = (id: string, item: Partial<InvestmentProduct>) => {
-    const next = data.investmentProducts.map((row) => (row.id === id ? { ...row, ...item } : row));
-    if (next.reduce((sum, row) => sum + row.ratio, 0) <= 100) patch("investmentProducts", next);
-  };
-  const updateAccount = (id: string, item: Partial<Account>) => patch("accounts", data.accounts.map((row) => (row.id === id ? { ...row, ...item } : row)));
-  const updateCard = (id: string, item: Partial<Card>) => patch("cards", data.cards.map((row) => (row.id === id ? { ...row, ...item } : row)));
   const updateFlowPosition = (nodeId: string, position: FlowPosition) => {
-    patch("flowPositions", { ...data.flowPositions, [nodeId]: position });
+    setSavedData((current) => ({ ...current, flowPositions: { ...current.flowPositions, [nodeId]: position } }));
   };
   const resetFlow = (nodeIds: string[]) => {
-    const next = { ...data.flowPositions };
-    nodeIds.forEach((nodeId) => delete next[nodeId]);
-    patch("flowPositions", next);
+    setSavedData((current) => {
+      const next = { ...current.flowPositions };
+      nodeIds.forEach((nodeId) => delete next[nodeId]);
+      return { ...current, flowPositions: next };
+    });
   };
   const addCustomEdge = (from: string, to: string) => {
     if (from === to) return;
-    const exists = (data.customFlowEdges ?? []).some((edge) => edge.from === from && edge.to === to);
-    if (exists) return;
-    patch("customFlowEdges", [...(data.customFlowEdges ?? []), { id: newId(), from, to }]);
+    setSavedData((current) => {
+      const exists = (current.customFlowEdges ?? []).some((edge) => edge.from === from && edge.to === to);
+      if (exists) return current;
+      return { ...current, customFlowEdges: [...(current.customFlowEdges ?? []), { id: newId(), from, to }] };
+    });
   };
   const removeCustomEdge = (edgeId: string) => {
-    patch("customFlowEdges", (data.customFlowEdges ?? []).filter((edge) => edge.id !== edgeId));
+    setSavedData((current) => ({ ...current, customFlowEdges: (current.customFlowEdges ?? []).filter((edge) => edge.id !== edgeId) }));
   };
 
   return (
-    <ViewModeContext.Provider value={isView}>
     <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className={`mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8 ${!isView ? "pb-24 sm:pb-28" : ""}`}>
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-3 sm:gap-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -433,43 +364,14 @@ export default function App() {
                     analysisPeriod: data.analysisPeriod,
                   };
                   setSavedData(cleared);
-                  setDraft(cleared);
                 }}
               />
               <IconToggle
                 label={data.darkMode ? "라이트모드로 전환" : "다크모드로 전환"}
                 icon={data.darkMode ? <Sun size={16} /> : <Moon size={16} />}
-                onClick={() => {
-                  const next = !data.darkMode;
-                  setSavedData((current) => ({ ...current, darkMode: next }));
-                  setDraft((current) => ({ ...current, darkMode: next }));
-                }}
+                onClick={() => setSavedData((current) => ({ ...current, darkMode: !current.darkMode }))}
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <ModeTabs mode={mode} onChange={requestMode} dirty={isDirty} />
-            {!isView && (
-              <div className="flex items-center justify-end gap-2">
-                {isDirty && <span className="text-xs font-medium text-amber-700 dark:text-amber-300">미저장 변경</span>}
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  disabled={!isDirty}
-                  onClick={discardDraft}
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center rounded-full bg-teal-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
-                  disabled={!isDirty}
-                  onClick={saveDraft}
-                >
-                  저장
-                </button>
-              </div>
-            )}
           </div>
         </header>
 
@@ -793,7 +695,7 @@ export default function App() {
                 <h3 className="text-sm font-bold tracking-tight">예외 지출 통계</h3>
                 <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">병원·경조사·의류·여행 카테고리 누적</p>
               </div>
-              <PeriodTabs value={data.analysisPeriod} onChange={(value) => patch("analysisPeriod", value)} />
+              <PeriodTabs value={data.analysisPeriod} onChange={(value) => setSavedData((current) => ({ ...current, analysisPeriod: value }))} />
             </div>
             <CategoryLegend categories={exceptionLegend} />
             {exceptionStats.length === 0 ? (
@@ -849,80 +751,7 @@ export default function App() {
         </Section>
 
       </div>
-      {!isView && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/85">
-          <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
-            {isDirty ? (
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">미저장 변경</span>
-            ) : (
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">모든 변경이 저장됨</span>
-            )}
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                className="inline-flex h-10 items-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                disabled={!isDirty}
-                onClick={discardDraft}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-10 items-center rounded-full bg-teal-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
-                disabled={!isDirty}
-                onClick={saveDraft}
-              >
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {pendingMode !== null && (
-        <UnsavedDialog
-          onSave={() => resolvePending("save")}
-          onDiscard={() => resolvePending("discard")}
-          onCancel={() => resolvePending("cancel")}
-        />
-      )}
     </main>
-    </ViewModeContext.Provider>
-  );
-}
-
-function UnsavedDialog({ onSave, onDiscard, onCancel }: { onSave: () => void; onDiscard: () => void; onCancel: () => void }) {
-  return (
-    <div role="dialog" aria-modal="true" aria-labelledby="unsaved-title" className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <h2 id="unsaved-title" className="text-lg font-bold tracking-tight">저장하지 않은 변경 사항</h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          편집한 내용이 아직 저장되지 않았습니다. 어떻게 처리할까요?
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            onClick={onCancel}
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200 bg-white px-4 text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950"
-            onClick={onDiscard}
-          >
-            변경 버리기
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-teal-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 dark:bg-teal-500 dark:text-zinc-950 dark:hover:bg-teal-400"
-            onClick={onSave}
-          >
-            저장하고 이동
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -944,33 +773,6 @@ function PeriodTabs({ value, onChange }: { value: Period; onChange: (value: Peri
             onClick={() => onChange(item.value)}
           >
             {item.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function ModeTabs({ mode, onChange, dirty = false }: { mode: Mode; onChange: (mode: Mode) => void; dirty?: boolean }) {
-  const items: { value: Mode; label: string }[] = [
-    { value: "view", label: "조회" },
-    { value: "edit", label: "편집" },
-  ];
-  return (
-    <div role="tablist" aria-label="모드" className="grid h-11 w-full grid-cols-2 rounded-xl bg-white p-1 text-sm font-medium shadow-sm ring-1 ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800 sm:inline-grid sm:w-auto sm:min-w-[200px]">
-      {items.map((item) => {
-        const active = mode === item.value;
-        const showDot = item.value === "edit" && dirty;
-        return (
-          <button
-            key={item.value}
-            role="tab"
-            aria-selected={active}
-            className={`relative rounded-lg px-3 transition ${active ? "bg-zinc-900 text-white shadow dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"}`}
-            onClick={() => onChange(item.value)}
-          >
-            {item.label}
-            {showDot && <span aria-label="미저장 변경" className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-500" />}
           </button>
         );
       })}
