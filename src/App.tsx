@@ -900,6 +900,7 @@ function EditableFlow({
   };
 
   const startDrag = (event: PointerEvent<HTMLButtonElement>, node: FlowNode) => {
+    if (readOnly) return;
     const coords = toContentCoords(event.clientX, event.clientY);
     if (!coords) return;
     event.stopPropagation();
@@ -1083,7 +1084,7 @@ function EditableFlow({
             <button
               key={node.id}
               type="button"
-              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
+              className={`absolute flex h-[84px] w-[180px] touch-none items-center gap-3 rounded-lg border px-3 text-left shadow-sm transition hover:shadow-md ${flowTone(node.tone)} ${readOnly ? "cursor-default" : connectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${connectFrom === node.id ? "ring-2 ring-teal-500 ring-offset-2 dark:ring-offset-zinc-900" : ""}`}
               style={{ transform: `translate(${node.x}px, ${node.y}px)` }}
               onPointerDown={(event) => startDrag(event, node)}
               onPointerMove={moveDrag}
@@ -1389,13 +1390,18 @@ function InvestmentAccountTypeSelect({ value, onChange }: { value: string; onCha
 }
 
 function IncludedToggle({ value, onChange }: { value: boolean; onChange: (value: boolean) => void }) {
+  const readOnly = useReadOnly();
+  const cls = `inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${value ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`;
+  if (readOnly) {
+    return <span className={cls}>{value ? "포함" : "제외"}</span>;
+  }
   return (
     <button
       type="button"
       role="switch"
       aria-checked={value}
       onClick={() => onChange(!value)}
-      className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium transition ${value ? "bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-900/50 dark:text-teal-200 dark:hover:bg-teal-900" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"}`}
+      className={`${cls} transition hover:brightness-95`}
     >
       {value ? "포함" : "제외"}
     </button>
