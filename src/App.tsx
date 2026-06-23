@@ -211,7 +211,6 @@ export default function App() {
   const includedFixed = data.fixedExpenses.filter((item) => item.included !== false);
   const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - includedFixed.reduce((sum, item) => sum + item.amount, 0), 0);
   const totalFixed = includedFixed.reduce((sum, item) => sum + item.amount, 0);
-  const disposableIncome = totalIncome - totalFixed;
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
 
   const variableByMonth = useMemo(() => {
@@ -229,6 +228,7 @@ export default function App() {
     ? Math.round(variableByMonth.reduce((sum, item) => sum + item.amount, 0) / variableByMonth.length)
     : 0;
   const variableMonthlyMax = variableByMonth.reduce((max, item) => Math.max(max, item.amount), 0);
+  const disposableIncome = Math.max(totalIncome - totalFixed - variableMonthlyAverage, 0);
 
   const exceptionStats = useMemo(() => {
     const empty = () => ({ 병원: 0, 경조사: 0, 의류: 0, 여행: 0 });
@@ -415,7 +415,7 @@ export default function App() {
             />
           </div>
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${includedFixed.length}/${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
-          <Metric title="가처분소득" value={won(disposableIncome)} detail="변동 지출 제외" icon={<Wallet size={16} />} accent="indigo" />
+          <Metric title="가처분소득" value={won(disposableIncome)} detail={variableMonthlyAverage > 0 ? `변동 지출 월평균 ${won(variableMonthlyAverage)} 차감` : "변동 지출 없음"} icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
         <Section title="포트폴리오" action={<Button label="추가" icon={<Plus size={16} />} onClick={() => patch("investmentProducts", [...data.investmentProducts, { id: newId(), destination: "", broker: "", ratio: 0, accountType: "위탁(일반)" }])} />}>
