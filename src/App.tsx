@@ -551,46 +551,81 @@ export default function App() {
             onRemoveCustomEdge={removeCustomEdge}
             action={<Button label="배치 초기화" icon={<RefreshCw size={16} />} onClick={() => resetFlow(expenseFlow.nodes.map((node) => node.id))} />}
           />
-          {!isView && (
-            <div className="mt-5 flex flex-col gap-5">
-              <div className="min-w-0">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">계좌</h3>
-                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("accounts", [...data.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }])} />
-                </div>
-                <Table
-                  columns={["은행/증권사", "계좌명", "계좌번호", "유형", ""]}
-                  rows={data.accounts.map((item) => [
-                    <BrandField value={item.bank} kind={item.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => updateAccount(item.id, { bank: value })} />,
-                    <Text value={item.name} onChange={(value) => updateAccount(item.id, { name: value })} />,
-                    <Text value={item.number} onChange={(value) => updateAccount(item.id, { number: value })} />,
-                    <Select value={item.type} options={accountTypes} onChange={(value) => updateAccount(item.id, { type: value as AccountType })} />,
-                    <Delete onClick={() => patch("accounts", data.accounts.filter((row) => row.id !== item.id))} />,
-                  ])}
+          <div className="mt-5 flex flex-col gap-5">
+            <div className="min-w-0">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold tracking-tight">계좌</h3>
+                <Button
+                  label="추가"
+                  icon={<Plus size={16} />}
+                  onClick={() => setSavedData((current) => ({
+                    ...current,
+                    accounts: [...current.accounts, { id: newId(), bank: "", name: "", number: "", type: "생활비통장" }],
+                  }))}
                 />
               </div>
-              <div className="min-w-0">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold tracking-tight">카드</h3>
-                  <Button label="추가" icon={<Plus size={16} />} onClick={() => patch("cards", [...data.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }])} />
-                </div>
-                <Table
-                  columns={["카드명", "카드사", "결제계좌", ""]}
-                  rows={data.cards.map((item) => [
-                    <Text value={item.name} onChange={(value) => updateCard(item.id, { name: value })} />,
-                    <BrandField value={item.issuer} kind="card" onChange={(value) => updateCard(item.id, { issuer: value })} />,
-                    <SettlementAccountSelect
-                      value={item.settlementAccountId ?? ""}
-                      legacyText={item.settlementAccount}
-                      accounts={data.accounts}
-                      onChange={(value) => updateCard(item.id, { settlementAccountId: value, settlementAccount: "" })}
-                    />,
-                    <Delete onClick={() => patch("cards", data.cards.filter((row) => row.id !== item.id))} />,
-                  ])}
-                />
-              </div>
+              <EditableTable<Account>
+                columns={["은행/증권사", "계좌명", "계좌번호", "유형"]}
+                items={data.accounts}
+                emptyMessage="계좌를 추가하면 흐름도에 노드가 표시됩니다."
+                displayCells={(item) => [
+                  <BrandLabel brand={item.bank} hint={item.type === "투자계좌" ? "sec" : "bank"} size={24} />,
+                  <span className="text-sm">{item.name || "-"}</span>,
+                  <span className="text-sm tabular-nums">{item.number || "-"}</span>,
+                  <span className="text-sm">{item.type}</span>,
+                ]}
+                editCells={(draft, setDraft) => [
+                  <BrandField value={draft.bank} kind={draft.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => setDraft({ ...draft, bank: value })} />,
+                  <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                  <Text value={draft.number} onChange={(value) => setDraft({ ...draft, number: value })} />,
+                  <Select value={draft.type} options={accountTypes} onChange={(value) => setDraft({ ...draft, type: value as AccountType })} />,
+                ]}
+                onSave={(original, draft) => setSavedData((current) => ({ ...current, accounts: current.accounts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                onDelete={(item) => setSavedData((current) => ({ ...current, accounts: current.accounts.filter((row) => row.id !== item.id) }))}
+              />
             </div>
-          )}
+            <div className="min-w-0">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold tracking-tight">카드</h3>
+                <Button
+                  label="추가"
+                  icon={<Plus size={16} />}
+                  onClick={() => setSavedData((current) => ({
+                    ...current,
+                    cards: [...current.cards, { id: newId(), name: "", issuer: "", settlementAccount: "" }],
+                  }))}
+                />
+              </div>
+              <EditableTable<Card>
+                columns={["카드명", "카드사", "결제계좌"]}
+                items={data.cards}
+                emptyMessage="카드를 추가하면 흐름도에 노드가 표시됩니다."
+                displayCells={(item) => {
+                  const matched = data.accounts.find((account) => account.id === item.settlementAccountId);
+                  const settle = matched
+                    ? `${getBrand(matched.bank, matched.type === "투자계좌" ? "sec" : "bank")?.name ?? matched.bank} ${matched.name}`.trim()
+                    : item.settlementAccount || "-";
+                  return [
+                    <span className="text-sm">{item.name || "-"}</span>,
+                    <BrandLabel brand={item.issuer} hint="card" size={24} />,
+                    <span className="text-sm">{settle}</span>,
+                  ];
+                }}
+                editCells={(draft, setDraft) => [
+                  <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                  <BrandField value={draft.issuer} kind="card" onChange={(value) => setDraft({ ...draft, issuer: value })} />,
+                  <SettlementAccountSelect
+                    value={draft.settlementAccountId ?? ""}
+                    legacyText={draft.settlementAccount}
+                    accounts={data.accounts}
+                    onChange={(value) => setDraft({ ...draft, settlementAccountId: value, settlementAccount: "" })}
+                  />,
+                ]}
+                onSave={(original, draft) => setSavedData((current) => ({ ...current, cards: current.cards.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                onDelete={(item) => setSavedData((current) => ({ ...current, cards: current.cards.filter((row) => row.id !== item.id) }))}
+              />
+            </div>
+          </div>
         </Section>
 
         <Section title="고정 지출">
