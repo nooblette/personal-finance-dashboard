@@ -614,7 +614,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
           </div>
           <EditableTable<FixedExpense>
             columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
-            columnWidths={["4.5rem", undefined, "7rem", "5rem", "6.5rem", "10rem", undefined]}
+            columnWidths={["4.5rem", undefined, "7rem", "7rem", "6.5rem", "10rem", undefined]}
             items={sortedFixedExpenses}
             displayCells={(item) => {
               const kind = paymentKind(item.paymentMethod);
