@@ -352,7 +352,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
     <main
       className="min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50"
       style={{
-        paddingTop: "env(safe-area-inset-top)",
+        paddingTop: "calc(env(safe-area-inset-top) + 12px)",
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
       }}
