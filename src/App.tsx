@@ -421,7 +421,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
           <EditableTable<InvestmentProduct>
             columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
-            columnWidths={[undefined, "8rem", "8rem", undefined, "5.5rem", "7rem"]}
+            columnWidths={[undefined, "8rem", "9.5rem", undefined, "5.5rem", "7rem"]}
             items={data.investmentProducts}
             emptyMessage="투자 항목을 추가하면 표시됩니다."
             displayCells={(item) => [
