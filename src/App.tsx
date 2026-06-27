@@ -350,7 +350,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
 
   return (
     <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-3 sm:gap-4">
           <div className="flex items-start justify-between gap-3">
             <div>
