@@ -2287,6 +2287,27 @@ export default function App() {
     };
   }, []);
 
+  // iOS Safari 가 OAuth redirect 직후 첫 로드에서 viewport meta 를 무시하고
+  // desktop default 폭으로 layout viewport 를 잡는 버그가 있어, content 가
+  // 화면을 벗어나 보이는 증상이 있음. Supabase 의 SIGNED_IN 직후 한 번
+  // hard reload 해 viewport 를 재계산시킨다 (callback 으로 들어온 첫 진입에서만).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isOAuthCallback =
+      window.location.hash.includes("access_token") ||
+      window.location.search.includes("code=");
+    if (!isOAuthCallback) return;
+    const KEY = "personal-finance-dashboard:oauth-reload-done";
+    if (sessionStorage.getItem(KEY)) return;
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN") return;
+      sessionStorage.setItem(KEY, "1");
+      sub.subscription.unsubscribe();
+      setTimeout(() => window.location.reload(), 100);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   return (
     <AuthGate>
       {userId ? <VaultedApp userId={userId} /> : <FullscreenLoading message="로그인 확인 중이에요" />}
