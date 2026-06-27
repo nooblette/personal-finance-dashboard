@@ -35,17 +35,25 @@ body,
   }
 
   /* input[type=date] 의 webkit-datetime-edit 가 위쪽에 붙어 보이는 문제 해결.
-     input 자체는 기본 layout 유지 (calendar picker 아이콘 보존)하고
-     내부 datetime-edit 만 flex 로 vertical center. */
+     input 자체는 기본 layout 유지하고 내부 datetime-edit 만 flex 로 vertical center. */
   input[type="date"].field::-webkit-datetime-edit {
     padding: 0;
     display: flex;
     align-items: center;
     height: 100%;
   }
+  /* 모바일은 input tap 시 native picker 가 뜨므로 아이콘 숨겨 셀 정렬 보존,
+     데스크탑(sm 이상) 에서만 calendar picker 아이콘 노출. */
   input[type="date"].field::-webkit-calendar-picker-indicator {
-    opacity: 1;
-    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+  }
+  @media (min-width: 640px) {
+    input[type="date"].field::-webkit-calendar-picker-indicator {
+      opacity: 1;
+      pointer-events: auto;
+      cursor: pointer;
+    }
   }
 
   .markdown-preview {
