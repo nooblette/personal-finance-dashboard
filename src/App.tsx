@@ -224,7 +224,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
     ? Math.round(variableByMonth.reduce((sum, item) => sum + item.amount, 0) / variableByMonth.length)
     : 0;
   const variableMonthlyMax = variableByMonth.reduce((max, item) => Math.max(max, item.amount), 0);
-  const disposableIncome = Math.max(totalIncome - totalFixed - variableMonthlyAverage, 0);
+  const disposableIncome = totalIncome - totalFixed - variableMonthlyAverage;
 
   const exceptionStats = useMemo(() => {
     const empty = () => ({ 병원: 0, 경조사: 0, 의류: 0, 여행: 0 });
@@ -405,7 +405,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
         <Section title="포트폴리오">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap items-end gap-3">
-              <InvestmentBaseControl value={data.investmentBase} fallback={disposableIncome} onChange={(value) => setSavedData((current) => ({ ...current, investmentBase: value }))} />
+              <InvestmentBaseControl value={data.investmentBase} fallback={Math.max(disposableIncome, 0)} onChange={(value) => setSavedData((current) => ({ ...current, investmentBase: value }))} />
               <Readout label="투자 비율 합계" value={`${totalInvestmentRatio}%`} intent={totalInvestmentRatio === 100 ? "good" : "warn"} />
               {totalInvestmentRatio < 100 && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">투자 비율 합계가 100% 미만입니다.</p>}
             </div>
