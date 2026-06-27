@@ -2194,16 +2194,18 @@ function VaultedApp({ userId }: { userId: string }) {
   if (vaultCheckError) {
     return <FullscreenError message={`가계부 잠금 상태를 불러오지 못했어요. ${vaultCheckError}`} />;
   }
+  // DEK 가 메모리에 있으면 vault 확인 결과와 무관하게 즉시 진입.
+  // VaultSetup 직후 onComplete(dek) 가 set 되면 vaultExists 가 아직 false 여도 UnlockedApp 으로 라우팅.
+  if (dek) {
+    return <UnlockedApp userId={userId} dek={dek} />;
+  }
   if (vaultExists === null) {
     return <FullscreenLoading message="잠깐만요" />;
   }
   if (!vaultExists) {
     return <VaultSetup userId={userId} onComplete={setDek} />;
   }
-  if (!dek) {
-    return <VaultUnlock userId={userId} onUnlock={setDek} />;
-  }
-  return <UnlockedApp userId={userId} dek={dek} />;
+  return <VaultUnlock userId={userId} onUnlock={setDek} />;
 }
 
 function SignOutButton({ onClick }: { onClick: () => void }) {
