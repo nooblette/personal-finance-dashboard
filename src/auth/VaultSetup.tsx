@@ -101,7 +101,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm">
         {stage === "form" ? (
           <>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">내 가계부 잠그기</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">내 가계부 만들기</h1>
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
               비밀번호로 가계부를 잠가요. 비밀번호를 잊으면 복구 코드로만 풀 수 있고, 저희도 안에 있는 내용을 볼 수 없어요.
             </p>
