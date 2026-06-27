@@ -611,6 +611,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
           </div>
           <EditableTable<FixedExpense>
             columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
+            columnWidths={["4.5rem", undefined, "7rem", "5rem", "6.5rem", "10rem", undefined]}
             items={sortedFixedExpenses}
             displayCells={(item) => {
               const kind = paymentKind(item.paymentMethod);
@@ -1309,6 +1310,7 @@ function flowTone(tone: FlowNode["tone"]) {
 
 function EditableTable<T extends { id: string }>({
   columns,
+  columnWidths,
   items,
   displayCells,
   editCells,
@@ -1317,6 +1319,7 @@ function EditableTable<T extends { id: string }>({
   emptyMessage,
 }: {
   columns: string[];
+  columnWidths?: (string | undefined)[];
   items: T[];
   displayCells: (item: T) => ReactNode[];
   editCells: (draft: T, setDraft: (next: T) => void) => ReactNode[];
@@ -1413,9 +1416,10 @@ function EditableTable<T extends { id: string }>({
     ];
   });
 
+  const allWidths = columnWidths ? [...columnWidths, "5rem"] : undefined;
   return (
     <ViewModeContext.Provider value={false}>
-      <Table columns={allColumns} rows={rows} />
+      <Table columns={allColumns} rows={rows} columnWidths={allWidths} />
     </ViewModeContext.Provider>
   );
 }
@@ -1927,15 +1931,23 @@ function Delete({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Table({ columns, rows }: { columns: string[]; rows: ReactNode[][] }) {
+function Table({ columns, rows, columnWidths }: { columns: string[]; rows: ReactNode[][]; columnWidths?: (string | undefined)[] }) {
   const readOnly = useReadOnly();
+  const fixed = !!columnWidths;
   return (
     <>
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className={`w-full min-w-[640px] border-collapse text-left text-sm ${fixed ? "table-fixed" : ""}`}>
+          {fixed && (
+            <colgroup>
+              {columns.map((column, i) => (
+                <col key={column || `c${i}`} style={columnWidths?.[i] ? { width: columnWidths[i] } : undefined} />
+              ))}
+            </colgroup>
+          )}
           <thead>
             <tr className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}
+              {columns.map((column, i) => <th key={column || `h${i}`} className="px-3 py-2 font-medium">{column}</th>)}
             </tr>
           </thead>
           <tbody>
