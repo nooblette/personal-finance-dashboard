@@ -349,7 +349,14 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   };
 
   return (
-    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
+    <main
+      className="min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+      }}
+    >
       <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-5 px-5 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-3 sm:gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
