@@ -1140,7 +1140,7 @@ function EditableFlow({
   return (
     <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex h-9 items-center gap-0.5 rounded-md border border-zinc-200 bg-white p-0.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="inline-flex h-9 items-center gap-0.5 rounded-full border border-zinc-200 bg-white p-0.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <button type="button" title="축소" aria-label="축소" className="inline-flex h-8 w-8 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800" onClick={() => zoomBy(0.9)}>
             <Minus size={15} />
           </button>
