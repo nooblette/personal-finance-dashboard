@@ -11,17 +11,11 @@
 }
 
 html,
-body {
-  margin: 0;
-  /* viewport 단위로 명시해 자식이 부모 폭을 늘려도 root 폭이 viewport 를 넘지 않도록 */
-  width: 100vw;
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
+body,
 #root {
+  margin: 0;
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
   min-width: 0;
   overflow-x: hidden;
 }
