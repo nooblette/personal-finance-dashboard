@@ -717,13 +717,14 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                   <span className="text-sm">{item.memo || "-"}</span>,
                 ]}
                 editCells={(draft, setDraft) => [
-                  <input
-                    className="field h-10 block w-full min-w-0 max-w-full text-left [&::-webkit-date-and-time-value]:text-left"
-                    type="date"
-                    value={draft.date}
-                    onChange={(event) => setDraft({ ...draft, date: event.target.value })}
-                    style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
-                  />,
+                  <div className="flex w-full">
+                    <input
+                      className="field h-10 min-w-0 flex-1 text-left [&::-webkit-date-and-time-value]:text-left"
+                      type="date"
+                      value={draft.date}
+                      onChange={(event) => setDraft({ ...draft, date: event.target.value })}
+                    />
+                  </div>,
                   <CategorySelect
                     value={draft.category}
                     options={data.expenseCategories}
