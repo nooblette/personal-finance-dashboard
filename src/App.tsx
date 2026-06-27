@@ -2289,8 +2289,9 @@ export default function App() {
 
   // iOS Safari 가 OAuth redirect 직후 첫 로드에서 viewport meta 를 무시하고
   // desktop default 폭으로 layout viewport 를 잡는 버그가 있어, content 가
-  // 화면을 벗어나 보이는 증상이 있음. Supabase 의 SIGNED_IN 직후 한 번
-  // hard reload 해 viewport 를 재계산시킨다 (callback 으로 들어온 첫 진입에서만).
+  // 화면을 벗어나 보이는 증상이 있음. 다른 브라우저(카카오톡 인앱 등) 도
+  // 유사 케이스가 있어 OAuth 첫 진입은 일괄로 1회 hard reload 해 viewport
+  // 와 scroll 위치를 모두 깨끗하게 재계산.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isOAuthCallback =
@@ -2299,11 +2300,18 @@ export default function App() {
     if (!isOAuthCallback) return;
     const KEY = "personal-finance-dashboard:oauth-reload-done";
     if (sessionStorage.getItem(KEY)) return;
+    // reload 이후 페이지에서 브라우저가 이전 scroll 위치를 복원하지 않도록
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN") return;
       sessionStorage.setItem(KEY, "1");
       sub.subscription.unsubscribe();
-      setTimeout(() => window.location.reload(), 100);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        window.location.reload();
+      }, 100);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
