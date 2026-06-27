@@ -2261,7 +2261,7 @@ function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
   }
 
   if (hydrating || migrating || (!hasRemoteEntry && !migrationDone)) {
-    return <FullscreenLoading message="가계부 불러오는 중이에요" />;
+    return <FullscreenLoading message="가계부를 불러오는 중이에요" />;
   }
   if (error) {
     return <FullscreenError message={`가계부 동기화에 문제가 있어요. ${error}`} />;
