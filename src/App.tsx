@@ -710,7 +710,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                   <span className="text-sm">{item.memo || "-"}</span>,
                 ]}
                 editCells={(draft, setDraft) => [
-                  <input className="field h-10 w-full min-w-0 text-left" type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} />,
+                  <input className="field h-10 block w-full min-w-0 max-w-full appearance-none text-left [&::-webkit-date-and-time-value]:text-left" type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} />,
                   <CategorySelect
                     value={draft.category}
                     options={data.expenseCategories}
@@ -1979,7 +1979,7 @@ function Table({ columns, rows, columnWidths }: { columns: string[]; rows: React
           const actions = row.filter((_, i) => !columns[i]);
           return (
             <div key={rowIndex} className="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200/70 dark:bg-zinc-950 dark:ring-zinc-800">
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
+              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
                 {labeled.map((entry, i) => (
                   <div key={i} className="contents">
                     <dt className="self-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{entry.label}</dt>
