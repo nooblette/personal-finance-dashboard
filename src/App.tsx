@@ -16,6 +16,13 @@ import {
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, Clipboard, Maximize2, Minus, Moon, Pencil, Plus, RefreshCw, Sun, Trash2, Wallet, X } from "lucide-react";
 import { BrandIcon, BrandKind, BrandLabel, BrandSelect, brandsByKind, getBrand } from "./brandLibrary";
+import { AuthGate } from "./auth/AuthGate";
+import { VaultSetup } from "./auth/VaultSetup";
+import { VaultUnlock } from "./auth/VaultUnlock";
+import { migrateLegacyEntriesIfAny } from "./auth/legacyMigration";
+import { useEncryptedEntries } from "./hooks/useEncryptedEntries";
+import { readCachedDek } from "./lib/dekCache";
+import { supabase } from "./lib/supabase";
 
 type ExpenseCategory = string;
 type AccountType = "급여통장" | "생활비통장" | "투자계좌" | "비상금통장";
@@ -61,7 +68,6 @@ type DashboardData = {
   customFlowEdges: CustomFlowEdge[];
 };
 
-const STORAGE_KEY = "personal-finance-dashboard:v1";
 const ViewModeContext = createContext(true);
 const useReadOnly = () => useContext(ViewModeContext);
 const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
@@ -127,45 +133,53 @@ function prefersDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-function loadData(): DashboardData {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return { ...defaultData, darkMode: prefersDark() };
-    const parsed = JSON.parse(saved) as Partial<DashboardData> & { sideIncome?: number };
-    const next = { ...defaultData, ...parsed } as DashboardData;
-    if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
-    if (!Array.isArray(next.expenseCategories) || next.expenseCategories.length === 0) {
-      next.expenseCategories = defaultExpenseCategories;
-    }
-    if (!Array.isArray(next.sideIncomes)) {
-      const legacy = typeof parsed.sideIncome === "number" ? parsed.sideIncome : 0;
-      next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
-    }
-    if (next.investmentBase === undefined) next.investmentBase = null;
-    if (!Array.isArray(next.customFlowEdges)) next.customFlowEdges = [];
-    if (Array.isArray(next.investmentProducts)) {
-      next.investmentProducts = next.investmentProducts.map((item) => ({
-        ...item,
-        accountType: item.accountType && item.accountType.length > 0 ? item.accountType : "위탁(일반)",
-      }));
-    }
-    return next;
-  } catch {
-    return defaultData;
+function normalizeDashboardData(raw: unknown): DashboardData {
+  if (!raw || typeof raw !== "object") {
+    return { ...defaultData, darkMode: prefersDark() };
   }
+  const parsed = raw as Partial<DashboardData> & { sideIncome?: number };
+  const next = { ...defaultData, ...parsed } as DashboardData;
+  if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
+  if (!Array.isArray(next.expenseCategories) || next.expenseCategories.length === 0) {
+    next.expenseCategories = defaultExpenseCategories;
+  }
+  if (!Array.isArray(next.sideIncomes)) {
+    const legacy = typeof parsed.sideIncome === "number" ? parsed.sideIncome : 0;
+    next.sideIncomes = legacy > 0 ? [{ id: newId(), name: "부수입", amount: legacy }] : [];
+  }
+  if (next.investmentBase === undefined) next.investmentBase = null;
+  if (!Array.isArray(next.customFlowEdges)) next.customFlowEdges = [];
+  if (Array.isArray(next.investmentProducts)) {
+    next.investmentProducts = next.investmentProducts.map((item) => ({
+      ...item,
+      accountType: item.accountType && item.accountType.length > 0 ? item.accountType : "위탁(일반)",
+    }));
+  }
+  return next;
 }
 
-export default function App() {
-  const [savedData, setSavedData] = useState<DashboardData>(loadData);
+interface DashboardProps {
+  initialData: DashboardData;
+  onChange: (next: DashboardData) => void;
+}
+
+function Dashboard({ initialData, onChange }: DashboardProps) {
+  const [savedData, setSavedData] = useState<DashboardData>(initialData);
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
   const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
   const [flowNodeOpen, setFlowNodeOpen] = useState<string | null>(null);
   const data = savedData;
 
+  // 첫 마운트는 hydrate 결과 그대로이므로 onChange 트리거 skip — 이후 사용자 변경분만 위로 전달
+  const mountedRef = useRef(false);
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-  }, [savedData]);
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    onChange(savedData);
+  }, [savedData, onChange]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", data.darkMode);
@@ -2131,5 +2145,109 @@ function MoneyTooltip({ active, payload, label, labelFormatter }: { active?: boo
         </div>
       )}
     </div>
+  );
+}
+
+function FullscreenMessage({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
+      {message}
+    </div>
+  );
+}
+
+function VaultedApp({ userId }: { userId: string }) {
+  const [dek, setDek] = useState<Uint8Array | null>(() => readCachedDek());
+  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
+  const [vaultCheckError, setVaultCheckError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("vaults")
+        .select("user_id")
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setVaultCheckError(error.message);
+        return;
+      }
+      setVaultExists(!!data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  if (vaultCheckError) {
+    return <FullscreenMessage message={`vault 확인 실패: ${vaultCheckError}`} />;
+  }
+  if (vaultExists === null) {
+    return <FullscreenMessage message="vault 확인 중…" />;
+  }
+  if (!vaultExists) {
+    return <VaultSetup userId={userId} onComplete={setDek} />;
+  }
+  if (!dek) {
+    return <VaultUnlock onUnlock={setDek} />;
+  }
+  return <UnlockedApp userId={userId} dek={dek} />;
+}
+
+function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
+  const { data, setData, hydrating, hasRemoteEntry, error } = useEncryptedEntries<DashboardData>(userId, dek);
+  const [migrationDone, setMigrationDone] = useState(false);
+  const [migratedData, setMigratedData] = useState<DashboardData | null>(null);
+  const [migrating, setMigrating] = useState(false);
+
+  useEffect(() => {
+    if (hydrating || hasRemoteEntry || migrationDone) return;
+    setMigrating(true);
+    (async () => {
+      const result = await migrateLegacyEntriesIfAny<unknown>(userId, dek);
+      if (result.migrated && result.data) {
+        setMigratedData(normalizeDashboardData(result.data));
+      }
+      setMigrating(false);
+      setMigrationDone(true);
+    })();
+  }, [hydrating, hasRemoteEntry, migrationDone, userId, dek]);
+
+  if (hydrating || migrating || (!hasRemoteEntry && !migrationDone)) {
+    return <FullscreenMessage message="데이터 불러오는 중…" />;
+  }
+  if (error) {
+    return <FullscreenMessage message={`동기화 오류: ${error}`} />;
+  }
+
+  const initial = data
+    ? normalizeDashboardData(data)
+    : migratedData ?? { ...defaultData, darkMode: prefersDark() };
+
+  return <Dashboard initialData={initial} onChange={setData} />;
+}
+
+export default function App() {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setUserId(data.user?.id ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <AuthGate>
+      {userId ? <VaultedApp userId={userId} /> : <FullscreenMessage message="세션 확인 중…" />}
+    </AuthGate>
   );
 }
