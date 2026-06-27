@@ -169,6 +169,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
   const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
+  const [variableSort, setVariableSort] = useState<"date-desc" | "date-asc" | "input">("date-desc");
   const [flowNodeOpen, setFlowNodeOpen] = useState<string | null>(null);
   const data = savedData;
 
@@ -206,6 +207,15 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
     }
     return arr;
   }, [data.fixedExpenses, fixedSort]);
+  const sortedVariableExpenses = useMemo(() => {
+    const arr = [...data.variableExpenses];
+    switch (variableSort) {
+      case "date-desc": arr.sort((a, b) => b.date.localeCompare(a.date)); break;
+      case "date-asc": arr.sort((a, b) => a.date.localeCompare(b.date)); break;
+      default: break;
+    }
+    return arr;
+  }, [data.variableExpenses, variableSort]);
   const investmentBaseAmount = data.investmentBase ?? Math.max(totalIncome - includedFixed.reduce((sum, item) => sum + item.amount, 0), 0);
   const totalFixed = includedFixed.reduce((sum, item) => sum + item.amount, 0);
   const totalInvestmentRatio = data.investmentProducts.reduce((sum, item) => sum + item.ratio, 0);
@@ -676,7 +686,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
         </Section>
 
         <Section title="변동 지출">
-          <div className="-mt-2 mb-3 flex items-center justify-end">
+          <div className="-mt-2 mb-3 flex items-center justify-between gap-2">
             <Button
               label="추가"
               icon={<Plus size={16} />}
@@ -691,6 +701,19 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                 setVariableDetailOpen(true);
               }}
             />
+            <label className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
+              정렬
+              <select
+                className="field h-9 w-32 text-xs"
+                aria-label="정렬"
+                value={variableSort}
+                onChange={(event) => setVariableSort(event.target.value as typeof variableSort)}
+              >
+                <option value="date-desc">최신순</option>
+                <option value="date-asc">오래된순</option>
+                <option value="input">입력 순</option>
+              </select>
+            </label>
           </div>
           <button
             type="button"
@@ -709,7 +732,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               <EditableTable<VariableExpense>
                 columns={["날짜", "카테고리", "금액", "메모"]}
                 columnWidths={["8rem", "8rem", "7rem", undefined]}
-                items={data.variableExpenses}
+                items={sortedVariableExpenses}
                 displayCells={(item) => [
                   <span className="text-sm tabular-nums">{item.date}</span>,
                   <span className="text-sm">{item.category}</span>,
