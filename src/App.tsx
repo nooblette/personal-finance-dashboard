@@ -1700,13 +1700,13 @@ function Money({ label, value, onChange }: { label: string; value: number; onCha
 function BrandField({ value, kind, onChange }: { value: string; kind: BrandKind; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
   if (readOnly) return <BrandLabel brand={value} hint={kind} size={24} />;
-  return <BrandSelect value={value} kind={kind} onChange={onChange} className="sm:min-w-40" />;
+  return <BrandSelect value={value} kind={kind} onChange={onChange} className="w-full" />;
 }
 
 function Text({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-36">{value || "-"}</span>;
-  return <input className="field h-10 sm:min-w-36" value={value} onChange={(event) => onChange(event.target.value)} />;
+  return <input className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function NumberBox({ value, onChange, suffix }: { value: number; onChange: (value: number) => void; suffix?: string }) {
@@ -1715,8 +1715,8 @@ function NumberBox({ value, onChange, suffix }: { value: number; onChange: (valu
     return <span className="block text-sm font-medium tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-28">{format.format(value)}{suffix ? ` ${suffix}` : ""}</span>;
   }
   return (
-    <div className="flex items-center gap-1 sm:min-w-28">
-      <input className="field h-10" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
+    <div className="flex w-full items-center gap-1">
+      <input className="field h-10 min-w-0 flex-1" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
       {suffix && <span className="text-sm text-zinc-500">{suffix}</span>}
     </div>
   );
@@ -1727,7 +1727,7 @@ function PaymentMethodSelect({ value, onChange }: { value: string; onChange: (va
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-24">{value || "-"}</span>;
   const hasCustom = value && !paymentMethodOptions.includes(value);
   return (
-    <select className="field h-10 sm:min-w-24" value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)}>
       {!value && <option value="">선택</option>}
       {hasCustom && <option value={value}>{value}</option>}
       {paymentMethodOptions.map((option) => <option key={option} value={option}>{option}</option>)}
@@ -1755,7 +1755,7 @@ function SettlementAccountSelect({
     return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{display || "-"}</span>;
   }
   return (
-    <select className="field h-10 sm:min-w-44" value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)}>
       <option value="">{legacyText ? `(${legacyText}) — 선택 안 됨` : "선택 안 함"}</option>
       {accounts.map((account) => {
         const brandName = getBrand(account.bank, account.type === "투자계좌" ? "sec" : "bank")?.name ?? account.bank;
@@ -1773,7 +1773,7 @@ function InvestmentAccountTypeSelect({ value, onChange }: { value: string; onCha
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-28">{value || "-"}</span>;
   const hasCustom = value && !investmentAccountTypeOptions.includes(value);
   return (
-    <select className="field h-10 sm:min-w-28" value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)}>
       {hasCustom && <option value={value}>{value}</option>}
       {investmentAccountTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
@@ -1805,7 +1805,7 @@ function PaymentDayField({ value, onChange }: { value: string; onChange: (value:
   if (readOnly) return <span className="block text-sm tabular-nums text-zinc-800 dark:text-zinc-100 sm:min-w-12">{label || "-"}</span>;
   return (
     <select
-      className="field h-10 sm:min-w-20"
+      className="field h-10 w-full"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     >
@@ -1839,7 +1839,7 @@ function PaymentBrandField({
   const value = kind === "card" ? cardValue : transferValue;
   const onChange = kind === "card" ? onCardChange : onTransferChange;
   if (readOnly) return <BrandLabel brand={value} hint={brandKind} size={24} />;
-  return <BrandSelect value={value} kind={brandKind} onChange={onChange} className="sm:min-w-40" />;
+  return <BrandSelect value={value} kind={brandKind} onChange={onChange} className="w-full" />;
 }
 
 function PaymentDetailField({
@@ -1863,14 +1863,14 @@ function PaymentDetailField({
   const value = kind === "card" ? cardValue : transferValue;
   const onChange = kind === "card" ? onCardChange : onTransferChange;
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value || "-"}</span>;
-  return <input className="field h-10 sm:min-w-32" value={value} onChange={(event) => onChange(event.target.value)} />;
+  return <input className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
   const readOnly = useReadOnly();
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value}</span>;
   return (
-    <select className="field h-10 sm:min-w-32" value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => <option key={option}>{option}</option>)}
     </select>
   );
@@ -1882,7 +1882,7 @@ function CategorySelect({ value, options, onChange, onAddCategory }: { value: st
   if (readOnly) return <span className="block text-sm text-zinc-800 dark:text-zinc-100 sm:min-w-32">{value}</span>;
   return (
     <select
-      className="field h-10 sm:min-w-32"
+      className="field h-10 w-full"
       value={options.includes(value) ? value : ""}
       onChange={(event) => {
         if (event.target.value === ADD_CATEGORY_VALUE) {
@@ -1951,13 +1951,13 @@ function Table({ columns, rows, columnWidths }: { columns: string[]; rows: React
           )}
           <thead>
             <tr className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {columns.map((column, i) => <th key={column || `h${i}`} className="px-3 py-2 font-medium">{column}</th>)}
+              {columns.map((column, i) => <th key={column || `h${i}`} className="px-3 py-2 font-medium sm:px-4">{column}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={rowIndex} className="border-t border-zinc-100 transition hover:bg-zinc-50/60 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
-                {row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2.5 align-middle">{cell}</td>)}
+                {row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2.5 align-middle sm:px-4">{cell}</td>)}
               </tr>
             ))}
           </tbody>
