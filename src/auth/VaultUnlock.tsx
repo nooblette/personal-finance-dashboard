@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { deriveKek, generateIv, generateSalt, unwrapDek, wrapDek } from "../lib/crypto";
 import { cacheDek } from "../lib/dekCache";
-import { base64ToBytes, bytesToBase64 } from "../lib/encoding";
+import { bytesToBase64, decodeBinary } from "../lib/encoding";
 
 interface VaultUnlockProps {
   onUnlock: (dek: Uint8Array) => void;
@@ -56,9 +56,9 @@ export function VaultUnlock({ onUnlock }: VaultUnlockProps) {
     setError(null);
     setBusy(true);
     try {
-      const salt = base64ToBytes(vault.kdf_salt);
-      const dekIv = base64ToBytes(vault.dek_iv);
-      const wrappedDek = base64ToBytes(vault.wrapped_dek);
+      const salt = decodeBinary(vault.kdf_salt);
+      const dekIv = decodeBinary(vault.dek_iv);
+      const wrappedDek = decodeBinary(vault.wrapped_dek);
       const kek = await deriveKek(passphrase, salt, vault.kdf_iterations);
       const dek = await unwrapDek(wrappedDek, kek, dekIv);
       cacheDek(dek, rememberDevice);
@@ -92,9 +92,9 @@ export function VaultUnlock({ onUnlock }: VaultUnlockProps) {
     setBusy(true);
     let dek: Uint8Array;
     try {
-      const recoverySalt = base64ToBytes(vault.recovery_salt);
-      const recoveryDekIv = base64ToBytes(vault.recovery_dek_iv);
-      const recoveryWrappedDek = base64ToBytes(vault.recovery_wrapped_dek);
+      const recoverySalt = decodeBinary(vault.recovery_salt);
+      const recoveryDekIv = decodeBinary(vault.recovery_dek_iv);
+      const recoveryWrappedDek = decodeBinary(vault.recovery_wrapped_dek);
       const recoveryKek = await deriveKek(
         recoveryCode.trim().toUpperCase(),
         recoverySalt,

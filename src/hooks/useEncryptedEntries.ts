@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { decryptPayload, encryptPayload, generateIv } from "../lib/crypto";
-import { base64ToBytes, bytesToBase64 } from "../lib/encoding";
+import { bytesToBase64, decodeBinary } from "../lib/encoding";
 
 interface EntriesRow {
   user_id: string;
@@ -44,8 +44,8 @@ export function useEncryptedEntries<T>(userId: string, dek: Uint8Array): UseEncr
           return;
         }
         const entry = row as EntriesRow;
-        const ciphertext = base64ToBytes(entry.ciphertext);
-        const iv = base64ToBytes(entry.iv);
+        const ciphertext = decodeBinary(entry.ciphertext);
+        const iv = decodeBinary(entry.iv);
         const plaintext = await decryptPayload(ciphertext, dek, iv);
         const parsed = JSON.parse(plaintext) as T;
         if (cancelled) return;
