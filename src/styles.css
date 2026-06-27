@@ -36,9 +36,14 @@ body,
 
   /* input[type=date] 의 webkit-datetime-edit 가 위쪽에 붙어 보이는 문제 해결.
      input 자체에 line-height = height(h-10 = 2.5rem) 명시해서 YYYY.MM.DD 텍스트가
-     상하 동일 여백으로 vertical center 되도록. */
+     상하 동일 여백으로 vertical center 되도록.
+     native min-width 가 다른 input/select 보다 좁아 보이는 문제는
+     width:100% + min-width:0 으로 강제. */
   input[type="date"].field {
     line-height: 2.5rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
   input[type="date"].field::-webkit-datetime-edit {
     padding: 0;
