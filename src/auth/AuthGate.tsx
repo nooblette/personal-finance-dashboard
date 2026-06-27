@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Callback } from "./Callback";
@@ -9,18 +9,29 @@ interface AuthGateProps {
 
 type SessionState = Session | null | undefined;
 
+function mapAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("rate limit")) {
+    return "메일을 너무 자주 보내고 있어요. 1~2시간 뒤에 다시 시도하거나 Google로 계속해주세요.";
+  }
+  if (lower.includes("invalid login credentials")) {
+    return "로그인 정보가 올바르지 않아요.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "이메일 인증이 아직 안 됐어요. 받은 메일의 링크를 먼저 눌러주세요.";
+  }
+  if (lower.includes("network") || lower.includes("failed to fetch")) {
+    return "네트워크 연결을 확인해주세요.";
+  }
+  return message;
+}
+
 export function AuthGate({ children }: AuthGateProps) {
   const [session, setSession] = useState<SessionState>(undefined);
   const [email, setEmail] = useState("");
   const [magicSent, setMagicSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // detectSessionInUrl 이 토큰을 비동기로 흡수하는 동안 깜빡임 방지
-  const isProcessingCallback = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return window.location.hash.includes("access_token") || window.location.search.includes("code=");
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -42,7 +53,7 @@ export function AuthGate({ children }: AuthGateProps) {
     });
     setBusy(false);
     if (error) {
-      setErrorMsg(error.message);
+      setErrorMsg(mapAuthError(error.message));
       return;
     }
     setMagicSent(true);
@@ -57,11 +68,13 @@ export function AuthGate({ children }: AuthGateProps) {
     });
     if (error) {
       setBusy(false);
-      setErrorMsg(error.message);
+      setErrorMsg(mapAuthError(error.message));
     }
   }
 
-  if (session === undefined || isProcessingCallback) {
+  // session 이 아직 결정되지 않은 동안만 Callback 표시.
+  // (이전엔 useMemo 로 mount 시점의 URL 토큰만 보고 영원히 Callback 유지 → OAuth 실패/완료 모두 멈춰 보였음)
+  if (session === undefined) {
     return <Callback />;
   }
 
