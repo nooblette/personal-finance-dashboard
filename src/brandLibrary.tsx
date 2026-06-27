@@ -52,6 +52,7 @@ const brands: Brand[] = [
   { id: "citi-card", name: "씨티카드", kind: "card", initials: "Citi", bg: "bg-blue-800", fg: "text-white", hasOriginal: true, hasFill: true, logoAlias: "citi" },
   { id: "kakaobank-card", name: "카카오뱅크", kind: "card", initials: "kakao", bg: "bg-yellow-300", fg: "text-zinc-900", hasOriginal: true, logoAlias: "kakaobank" },
   { id: "tossbank-card", name: "토스뱅크", kind: "card", initials: "toss", bg: "bg-blue-500", fg: "text-white", hasOriginal: true, hasFill: true, logoAlias: "tossbank" },
+  { id: "kbank-card", name: "케이뱅크", kind: "card", initials: "K", bg: "bg-rose-500", fg: "text-white", hasOriginal: true, hasFill: true, logoAlias: "kbank" },
 
   { id: "mirae-asset", name: "미래에셋증권", kind: "sec", initials: "미래", bg: "bg-orange-500", fg: "text-white", hasOriginal: true },
   { id: "kis", name: "한국투자증권", kind: "sec", initials: "한투", bg: "bg-red-600", fg: "text-white", hasOriginal: true },
@@ -119,6 +120,7 @@ const aliasEntries: Array<[string, string]> = [
   ["씨티카드", "citi-card"], ["시티카드", "citi-card"],
   ["카카오뱅크", "kakaobank-card"], ["카카오페이", "kakaobank-card"], ["카카오뱅크카드", "kakaobank-card"],
   ["토스뱅크", "tossbank-card"], ["토스페이", "tossbank-card"], ["토스뱅크카드", "tossbank-card"],
+  ["케이뱅크카드", "kbank-card"],
 
   ["미래에셋", "mirae-asset"], ["미래에셋증권", "mirae-asset"],
   ["한국투자", "kis"], ["한국투자증권", "kis"], ["한투", "kis"],
