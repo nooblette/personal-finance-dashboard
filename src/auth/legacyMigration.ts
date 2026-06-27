@@ -3,7 +3,7 @@
 
 import { supabase } from "../lib/supabase";
 import { encryptPayload, generateIv } from "../lib/crypto";
-import { bytesToBase64 } from "../lib/encoding";
+import { bytesToHex } from "../lib/encoding";
 
 const LEGACY_STORAGE_KEY = "personal-finance-dashboard:v1";
 const LEGACY_BACKUP_KEY = "personal-finance-dashboard:v1:legacy-backup";
@@ -40,8 +40,8 @@ export async function migrateLegacyEntriesIfAny<T>(
     const ciphertext = await encryptPayload(JSON.stringify(parsed), dek, iv);
     const { error: upsertErr } = await supabase.from("entries").upsert({
       user_id: userId,
-      ciphertext: bytesToBase64(ciphertext),
-      iv: bytesToBase64(iv),
+      ciphertext: bytesToHex(ciphertext),
+      iv: bytesToHex(iv),
       updated_at: new Date().toISOString(),
     });
     if (upsertErr) throw new Error(upsertErr.message);

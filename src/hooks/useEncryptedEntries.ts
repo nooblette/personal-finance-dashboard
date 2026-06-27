@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { decryptPayload, encryptPayload, generateIv } from "../lib/crypto";
-import { bytesToBase64, decodeBinary } from "../lib/encoding";
+import { bytesToHex, decodeBinary } from "../lib/encoding";
 
 interface EntriesRow {
   user_id: string;
@@ -71,8 +71,8 @@ export function useEncryptedEntries<T>(userId: string, dek: Uint8Array): UseEncr
         const ciphertext = await encryptPayload(JSON.stringify(next), dek, iv);
         const { error: upsertErr } = await supabase.from("entries").upsert({
           user_id: userId,
-          ciphertext: bytesToBase64(ciphertext),
-          iv: bytesToBase64(iv),
+          ciphertext: bytesToHex(ciphertext),
+          iv: bytesToHex(iv),
           updated_at: new Date().toISOString(),
         });
         if (upsertErr) throw new Error(upsertErr.message);

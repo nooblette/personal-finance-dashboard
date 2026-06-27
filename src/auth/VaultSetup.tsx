@@ -10,7 +10,7 @@ import {
   wrapDek,
 } from "../lib/crypto";
 import { cacheDek } from "../lib/dekCache";
-import { bytesToBase64 } from "../lib/encoding";
+import { bytesToHex } from "../lib/encoding";
 
 interface VaultSetupProps {
   userId: string;
@@ -59,13 +59,13 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
 
       const { error: insertError } = await supabase.from("vaults").insert({
         user_id: userId,
-        wrapped_dek: bytesToBase64(wrappedDek),
-        dek_iv: bytesToBase64(dekIv),
-        kdf_salt: bytesToBase64(salt),
+        wrapped_dek: bytesToHex(wrappedDek),
+        dek_iv: bytesToHex(dekIv),
+        kdf_salt: bytesToHex(salt),
         kdf_iterations: E2EE_PARAMS.KDF_ITERATIONS,
-        recovery_wrapped_dek: bytesToBase64(recoveryWrappedDek),
-        recovery_dek_iv: bytesToBase64(recoveryDekIv),
-        recovery_salt: bytesToBase64(recoverySalt),
+        recovery_wrapped_dek: bytesToHex(recoveryWrappedDek),
+        recovery_dek_iv: bytesToHex(recoveryDekIv),
+        recovery_salt: bytesToHex(recoverySalt),
         version: 1,
       });
       if (insertError) throw new Error(insertError.message);

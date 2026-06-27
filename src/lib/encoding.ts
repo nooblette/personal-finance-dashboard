@@ -19,6 +19,14 @@ export function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+export function bytesToHex(bytes: Uint8Array): string {
+  let hex = "\\x";
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
 export function hexToBytes(value: string): Uint8Array {
   const clean = value.startsWith("\\x") ? value.slice(2) : value;
   if (clean.length % 2 !== 0) {

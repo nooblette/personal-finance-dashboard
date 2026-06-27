@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { deriveKek, generateIv, generateSalt, unwrapDek, wrapDek } from "../lib/crypto";
 import { cacheDek } from "../lib/dekCache";
-import { bytesToBase64, decodeBinary } from "../lib/encoding";
+import { bytesToHex, decodeBinary } from "../lib/encoding";
 
 interface VaultUnlockProps {
   userId: string;
@@ -117,9 +117,9 @@ export function VaultUnlock({ userId, onUnlock }: VaultUnlockProps) {
       const { error: updateError } = await supabase
         .from("vaults")
         .update({
-          wrapped_dek: bytesToBase64(newWrappedDek),
-          dek_iv: bytesToBase64(newDekIv),
-          kdf_salt: bytesToBase64(newSalt),
+          wrapped_dek: bytesToHex(newWrappedDek),
+          dek_iv: bytesToHex(newDekIv),
+          kdf_salt: bytesToHex(newSalt),
         })
         .eq("user_id", vault.user_id);
       if (updateError) throw new Error(updateError.message);
