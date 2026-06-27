@@ -92,7 +92,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
 
   function finish() {
     if (!createdDek || !acknowledged) return;
-    cacheDek(createdDek, rememberDevice);
+    cacheDek(userId, createdDek, rememberDevice);
     onComplete(createdDek);
   }
 

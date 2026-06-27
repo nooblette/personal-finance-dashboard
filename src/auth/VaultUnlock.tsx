@@ -5,6 +5,7 @@ import { cacheDek } from "../lib/dekCache";
 import { bytesToBase64, decodeBinary } from "../lib/encoding";
 
 interface VaultUnlockProps {
+  userId: string;
   onUnlock: (dek: Uint8Array) => void;
 }
 
@@ -22,7 +23,7 @@ interface VaultRow {
 
 type Mode = "passphrase" | "recovery";
 
-export function VaultUnlock({ onUnlock }: VaultUnlockProps) {
+export function VaultUnlock({ userId, onUnlock }: VaultUnlockProps) {
   const [vault, setVault] = useState<VaultRow | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("passphrase");
@@ -61,7 +62,7 @@ export function VaultUnlock({ onUnlock }: VaultUnlockProps) {
       const wrappedDek = decodeBinary(vault.wrapped_dek);
       const kek = await deriveKek(passphrase, salt, vault.kdf_iterations);
       const dek = await unwrapDek(wrappedDek, kek, dekIv);
-      cacheDek(dek, rememberDevice);
+      cacheDek(userId, dek, rememberDevice);
       onUnlock(dek);
     } catch {
       // 복호화 실패 = 잘못된 비밀번호 (의뢰서 §5)
@@ -123,7 +124,7 @@ export function VaultUnlock({ onUnlock }: VaultUnlockProps) {
         .eq("user_id", vault.user_id);
       if (updateError) throw new Error(updateError.message);
 
-      cacheDek(dek, rememberDevice);
+      cacheDek(userId, dek, rememberDevice);
       onUnlock(dek);
     } catch (err) {
       setError(err instanceof Error ? err.message : "변경사항 저장에 실패했어요.");

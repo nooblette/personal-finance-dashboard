@@ -2168,7 +2168,7 @@ function FullscreenError({ message }: { message: string }) {
 }
 
 function VaultedApp({ userId }: { userId: string }) {
-  const [dek, setDek] = useState<Uint8Array | null>(() => readCachedDek());
+  const [dek, setDek] = useState<Uint8Array | null>(() => readCachedDek(userId));
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
   const [vaultCheckError, setVaultCheckError] = useState<string | null>(null);
 
@@ -2201,7 +2201,7 @@ function VaultedApp({ userId }: { userId: string }) {
     return <VaultSetup userId={userId} onComplete={setDek} />;
   }
   if (!dek) {
-    return <VaultUnlock onUnlock={setDek} />;
+    return <VaultUnlock userId={userId} onUnlock={setDek} />;
   }
   return <UnlockedApp userId={userId} dek={dek} />;
 }
