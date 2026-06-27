@@ -14,7 +14,9 @@ export const supabase = createClient(url, publishableKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    // 모바일 브라우저에서 세션 영속성 보장 위해 localStorage 를 명시 지정
+    flowType: "pkce",
+    // 모바일 브라우저에서 세션 영속성 보장 위해 localStorage 와 storageKey 명시
     storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    storageKey: "personal-finance-dashboard:supabase.auth.token",
   },
 });
