@@ -349,14 +349,14 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-100 text-zinc-950 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-50">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-5 px-5 py-5 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               {onSignOut && (
                 <IconToggle
                   label="로그아웃"
