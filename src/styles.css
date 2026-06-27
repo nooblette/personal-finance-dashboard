@@ -41,8 +41,9 @@ body,
      width:100% + min-width:0 으로 강제. */
   input[type="date"].field {
     line-height: 2.5rem;
-    width: 100%;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     box-sizing: border-box;
   }
   input[type="date"].field::-webkit-datetime-edit {
