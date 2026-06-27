@@ -1948,8 +1948,8 @@ function Table({ columns, rows, columnWidths }: { columns: string[]; rows: React
   const fixed = !!columnWidths;
   return (
     <>
-      <div className="hidden overflow-x-auto sm:block">
-        <table className={`w-full min-w-[640px] border-collapse text-left text-sm ${fixed ? "table-fixed" : ""}`}>
+      <div className="hidden w-full max-w-full overflow-x-auto sm:block">
+        <table className={`w-full border-collapse text-left text-sm sm:min-w-[640px] ${fixed ? "table-fixed" : ""}`}>
           {fixed && (
             <colgroup>
               {columns.map((column, i) => (
