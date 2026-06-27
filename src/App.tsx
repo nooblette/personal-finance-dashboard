@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, Clipboard, Maximize2, Minus, Moon, Pencil, Plus, RefreshCw, Sun, Trash2, Wallet, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, Clipboard, LogOut, Maximize2, Minus, Moon, Pencil, Plus, RefreshCw, Sun, Trash2, Wallet, X } from "lucide-react";
 import { BrandIcon, BrandKind, BrandLabel, BrandSelect, brandsByKind, getBrand } from "./brandLibrary";
 import { AuthGate } from "./auth/AuthGate";
 import { VaultSetup } from "./auth/VaultSetup";
@@ -161,9 +161,10 @@ function normalizeDashboardData(raw: unknown): DashboardData {
 interface DashboardProps {
   initialData: DashboardData;
   onChange: (next: DashboardData) => void;
+  onSignOut?: () => void;
 }
 
-function Dashboard({ initialData, onChange }: DashboardProps) {
+function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   const [savedData, setSavedData] = useState<DashboardData>(initialData);
   const [copyLabel, setCopyLabel] = useState("복사");
   const [variableDetailOpen, setVariableDetailOpen] = useState(false);
@@ -356,6 +357,13 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
               <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">개인 재무 대시보드</h1>
             </div>
             <div className="flex items-center gap-2">
+              {onSignOut && (
+                <IconToggle
+                  label="로그아웃"
+                  icon={<LogOut size={16} />}
+                  onClick={onSignOut}
+                />
+              )}
               <IconToggle
                 label="예시 데이터 비우기"
                 icon={<Trash2 size={16} />}
@@ -2224,18 +2232,6 @@ function VaultedApp({ userId }: { userId: string }) {
   return <VaultUnlock userId={userId} onUnlock={setDek} />;
 }
 
-function SignOutButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="fixed top-4 right-4 z-50 rounded-lg border border-zinc-300 bg-white/90 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm backdrop-blur hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-300 dark:hover:bg-zinc-800"
-    >
-      로그아웃
-    </button>
-  );
-}
-
 function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
   const { data, setData, hydrating, hasRemoteEntry, error } = useEncryptedEntries<DashboardData>(userId, dek);
   const [migrationDone, setMigrationDone] = useState(false);
@@ -2271,12 +2267,7 @@ function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
     ? normalizeDashboardData(data)
     : migratedData ?? { ...defaultData, darkMode: prefersDark() };
 
-  return (
-    <>
-      <SignOutButton onClick={signOut} />
-      <Dashboard initialData={initial} onChange={setData} />
-    </>
-  );
+  return <Dashboard initialData={initial} onChange={setData} onSignOut={signOut} />;
 }
 
 export default function App() {
