@@ -252,7 +252,7 @@ export function BrandSelect({
   const id = resolveBrandId(value, kind);
   const options = brandsByKind(kind);
   return (
-    <span className={`relative inline-flex h-9 min-w-0 items-center gap-1.5 rounded-md border border-zinc-200 bg-white pl-1 pr-1.5 shadow-sm focus-within:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 ${className ?? ""}`}>
+    <span className={`relative inline-flex h-9 min-w-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white pl-2 pr-2.5 shadow-sm focus-within:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 ${className ?? ""}`}>
       <BrandIcon brand={id} hint={kind} size={22} rounded="full" />
       <select
         className="h-full min-w-0 flex-1 cursor-pointer appearance-none bg-transparent pr-3 text-xs text-zinc-900 outline-none dark:text-zinc-50"
