@@ -421,6 +421,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
           <EditableTable<InvestmentProduct>
             columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
+            columnWidths={[undefined, "8rem", "8rem", undefined, "5.5rem", "7rem"]}
             items={data.investmentProducts}
             emptyMessage="투자 항목을 추가하면 표시됩니다."
             displayCells={(item) => [
@@ -519,6 +520,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
               </div>
               <EditableTable<Account>
                 columns={["은행/증권사", "계좌명", "계좌번호", "유형"]}
+                columnWidths={["10rem", undefined, undefined, "7rem"]}
                 items={data.accounts}
                 emptyMessage="계좌를 추가하면 흐름도에 노드가 표시됩니다."
                 displayCells={(item) => [
@@ -551,6 +553,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
               </div>
               <EditableTable<Card>
                 columns={["카드명", "카드사", "결제계좌"]}
+                columnWidths={[undefined, "10rem", undefined]}
                 items={data.cards}
                 emptyMessage="카드를 추가하면 흐름도에 노드가 표시됩니다."
                 displayCells={(item) => {
@@ -591,10 +594,10 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
                 fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }],
               }))}
             />
-            <label className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <label className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
               정렬
               <select
-                className="field h-9 text-xs"
+                className="field h-9 w-32 text-xs"
                 aria-label="정렬"
                 value={fixedSort}
                 onChange={(event) => setFixedSort(event.target.value as typeof fixedSort)}
@@ -690,6 +693,7 @@ function Dashboard({ initialData, onChange }: DashboardProps) {
             <div className="mt-3">
               <EditableTable<VariableExpense>
                 columns={["날짜", "카테고리", "금액", "메모"]}
+                columnWidths={["8rem", "8rem", "7rem", undefined]}
                 items={data.variableExpenses}
                 displayCells={(item) => [
                   <span className="text-sm tabular-nums">{item.date}</span>,
