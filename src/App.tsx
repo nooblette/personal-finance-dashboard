@@ -21,7 +21,7 @@ import { VaultSetup } from "./auth/VaultSetup";
 import { VaultUnlock } from "./auth/VaultUnlock";
 import { migrateLegacyEntriesIfAny } from "./auth/legacyMigration";
 import { useEncryptedEntries } from "./hooks/useEncryptedEntries";
-import { readCachedDek } from "./lib/dekCache";
+import { clearCachedDek, readCachedDek } from "./lib/dekCache";
 import { supabase } from "./lib/supabase";
 
 type ExpenseCategory = string;
@@ -2206,6 +2206,18 @@ function VaultedApp({ userId }: { userId: string }) {
   return <UnlockedApp userId={userId} dek={dek} />;
 }
 
+function SignOutButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="fixed top-4 right-4 z-50 rounded-lg border border-zinc-300 bg-white/90 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm backdrop-blur hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-300 dark:hover:bg-zinc-800"
+    >
+      로그아웃
+    </button>
+  );
+}
+
 function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
   const { data, setData, hydrating, hasRemoteEntry, error } = useEncryptedEntries<DashboardData>(userId, dek);
   const [migrationDone, setMigrationDone] = useState(false);
@@ -2225,6 +2237,11 @@ function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
     })();
   }, [hydrating, hasRemoteEntry, migrationDone, userId, dek]);
 
+  async function signOut() {
+    clearCachedDek(userId);
+    await supabase.auth.signOut();
+  }
+
   if (hydrating || migrating || (!hasRemoteEntry && !migrationDone)) {
     return <FullscreenLoading message="가계부 불러오는 중이에요" />;
   }
@@ -2236,7 +2253,12 @@ function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
     ? normalizeDashboardData(data)
     : migratedData ?? { ...defaultData, darkMode: prefersDark() };
 
-  return <Dashboard initialData={initial} onChange={setData} />;
+  return (
+    <>
+      <SignOutButton onClick={signOut} />
+      <Dashboard initialData={initial} onChange={setData} />
+    </>
+  );
 }
 
 export default function App() {
