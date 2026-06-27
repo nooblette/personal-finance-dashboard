@@ -29,17 +29,17 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
-  const [copyLabel, setCopyLabel] = useState("복사");
+  const [copyLabel, setCopyLabel] = useState("복사하기");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     if (passphrase.length < 8) {
-      setError("패스프레이즈는 8자 이상이어야 합니다.");
+      setError("비밀번호는 8자 이상으로 만들어주세요.");
       return;
     }
     if (passphrase !== confirm) {
-      setError("패스프레이즈 확인이 일치하지 않습니다.");
+      setError("두 비밀번호가 달라요. 다시 확인해주세요.");
       return;
     }
 
@@ -74,7 +74,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
       setRecoveryCode(recovery);
       setStage("showRecovery");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "vault 생성에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "잠금 만들기에 실패했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setBusy(false);
     }
@@ -83,11 +83,11 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
   async function copyRecovery() {
     try {
       await navigator.clipboard.writeText(recoveryCode);
-      setCopyLabel("복사됨");
+      setCopyLabel("복사했어요");
     } catch {
       setCopyLabel("복사 실패");
     }
-    setTimeout(() => setCopyLabel("복사"), 1500);
+    setTimeout(() => setCopyLabel("복사하기"), 1500);
   }
 
   function finish() {
@@ -101,14 +101,13 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
       <div className="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm">
         {stage === "form" ? (
           <>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">데이터 보호 설정</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">내 가계부 잠그기</h1>
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-              패스프레이즈로 가계부 데이터를 종단간 암호화합니다. 분실 시 복구 코드 외에는 데이터를 풀 방법이 없으며,
-              Supabase 운영자도 복호화할 수 없습니다.
+              비밀번호로 가계부를 잠가요. 비밀번호를 잊으면 복구 코드로만 풀 수 있고, 저희도 안에 있는 내용을 볼 수 없어요.
             </p>
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <label className="block">
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">패스프레이즈 (8자 이상)</span>
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">비밀번호 (8자 이상)</span>
                 <input
                   type="password"
                   required
@@ -120,7 +119,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
                 />
               </label>
               <label className="block">
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">패스프레이즈 확인</span>
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">비밀번호 다시 입력</span>
                 <input
                   type="password"
                   required
@@ -137,7 +136,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
                   onChange={(e) => setRememberDevice(e.target.checked)}
                   className="rounded border-zinc-300 dark:border-zinc-700"
                 />
-                <span>이 기기 기억하기 (7일간 패스프레이즈 재입력 없이 사용)</span>
+                <span>이 기기에서 7일간 비밀번호 안 묻기</span>
               </label>
               {error && (
                 <p className="rounded-md bg-rose-50 dark:bg-rose-950 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">
@@ -149,7 +148,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
                 disabled={busy || !passphrase || !confirm}
                 className="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
               >
-                {busy ? "키 생성 중…" : "패스프레이즈 설정"}
+                {busy ? "잠금 만드는 중이에요" : "비밀번호 만들기"}
               </button>
             </form>
           </>
@@ -157,8 +156,8 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
           <>
             <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">복구 코드</h1>
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-              패스프레이즈를 분실했을 때 데이터를 복구할 유일한 수단입니다.{" "}
-              <strong>이 화면을 닫으면 다시 표시되지 않습니다.</strong> 비밀번호 매니저 등 안전한 곳에 저장하세요.
+              비밀번호를 잊었을 때 가계부를 되찾을 수 있는 유일한 코드예요.{" "}
+              <strong>한 번만 보여드려요.</strong> 비밀번호 매니저 같은 안전한 곳에 꼭 저장해주세요.
             </p>
             <div className="mt-6 flex items-center gap-2">
               <code className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 font-mono text-base tracking-widest text-zinc-900 dark:text-zinc-100">
@@ -180,8 +179,8 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
                 className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700"
               />
               <span>
-                복구 코드를 안전한 곳에 저장했고, 이 코드와 패스프레이즈 둘 다 분실하면 데이터를 영구적으로 복호화할 수
-                없음을 이해했습니다.
+                복구 코드를 안전한 곳에 저장했어요. 이 코드와 비밀번호를 모두 잃어버리면 가계부를 영영 볼 수 없다는 점을
+                알고 있어요.
               </span>
             </label>
             <button
@@ -190,7 +189,7 @@ export function VaultSetup({ userId, onComplete }: VaultSetupProps) {
               disabled={!acknowledged}
               className="mt-6 w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
             >
-              가계부 시작
+              가계부 시작하기
             </button>
           </>
         )}

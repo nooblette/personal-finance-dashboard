@@ -2148,10 +2148,21 @@ function MoneyTooltip({ active, payload, label, labelFormatter }: { active?: boo
   );
 }
 
-function FullscreenMessage({ message }: { message: string }) {
+function FullscreenLoading({ message }: { message: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
-      {message}
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-zinc-50 dark:bg-zinc-950">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-teal-600" />
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">{message}</p>
+    </div>
+  );
+}
+
+function FullscreenError({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50 dark:bg-zinc-950">
+      <div className="max-w-md rounded-2xl border border-rose-300 bg-rose-50 dark:bg-rose-950 p-6 text-sm text-rose-700 dark:text-rose-300">
+        {message}
+      </div>
     </div>
   );
 }
@@ -2181,10 +2192,10 @@ function VaultedApp({ userId }: { userId: string }) {
   }, [userId]);
 
   if (vaultCheckError) {
-    return <FullscreenMessage message={`vault 확인 실패: ${vaultCheckError}`} />;
+    return <FullscreenError message={`가계부 잠금 상태를 불러오지 못했어요. ${vaultCheckError}`} />;
   }
   if (vaultExists === null) {
-    return <FullscreenMessage message="vault 확인 중…" />;
+    return <FullscreenLoading message="잠깐만요" />;
   }
   if (!vaultExists) {
     return <VaultSetup userId={userId} onComplete={setDek} />;
@@ -2215,10 +2226,10 @@ function UnlockedApp({ userId, dek }: { userId: string; dek: Uint8Array }) {
   }, [hydrating, hasRemoteEntry, migrationDone, userId, dek]);
 
   if (hydrating || migrating || (!hasRemoteEntry && !migrationDone)) {
-    return <FullscreenMessage message="데이터 불러오는 중…" />;
+    return <FullscreenLoading message="가계부 불러오는 중이에요" />;
   }
   if (error) {
-    return <FullscreenMessage message={`동기화 오류: ${error}`} />;
+    return <FullscreenError message={`가계부 동기화에 문제가 있어요. ${error}`} />;
   }
 
   const initial = data
@@ -2247,7 +2258,7 @@ export default function App() {
 
   return (
     <AuthGate>
-      {userId ? <VaultedApp userId={userId} /> : <FullscreenMessage message="세션 확인 중…" />}
+      {userId ? <VaultedApp userId={userId} /> : <FullscreenLoading message="로그인 확인 중이에요" />}
     </AuthGate>
   );
 }
