@@ -647,7 +647,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               const detailValue = kind === "card" ? item.cardName : kind === "transfer" ? item.account : "";
               return [
                 <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${item.included !== false ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>{item.included !== false ? "포함" : "제외"}</span>,
-                <span className="text-sm">{item.name || "-"}</span>,
+                <span className="block min-w-0 truncate text-sm" title={item.name || "-"}>{item.name || "-"}</span>,
                 <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
                 <span className="text-sm tabular-nums">{item.paymentDay ? `${item.paymentDay}일` : "-"}</span>,
                 <span className="text-sm">{item.paymentMethod || "-"}</span>,
