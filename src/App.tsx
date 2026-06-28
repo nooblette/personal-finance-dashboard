@@ -82,8 +82,9 @@ function paymentKind(method: string): PaymentKind {
   if (method.includes("이체")) return "transfer";
   return "other";
 }
-const exceptionCategories: string[] = ["병원", "경조사", "의류", "여행"];
 const accountTypes: AccountType[] = ["급여통장", "생활비통장", "투자계좌", "비상금통장"];
+// 카테고리 색상 팔레트 (등록 순으로 cycle)
+const categoryPalette = ["#14b8a6", "#f59e0b", "#6366f1", "#ef4444", "#8b5cf6", "#0ea5e9", "#10b981", "#f97316", "#ec4899"];
 
 const format = new Intl.NumberFormat("ko-KR");
 const newId = () => crypto.randomUUID();
@@ -244,27 +245,37 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   const variableMonthlyMax = variableByMonth.reduce((max, item) => Math.max(max, item.amount), 0);
   const disposableIncome = totalIncome - totalFixed - variableMonthlyAverage;
 
-  const exceptionStats = useMemo(() => {
-    const empty = () => ({ 병원: 0, 경조사: 0, 의류: 0, 여행: 0 });
+  const categoryStats = useMemo(() => {
+    const cats = data.expenseCategories;
     const keyOf = (date: string) => {
       const d = new Date(`${date}T00:00:00`);
       return data.analysisPeriod === "yearly" ? `${d.getFullYear()}` : date.slice(0, 7);
     };
-    // 변동지출 전체에서 등장한 모든 월/연을 키로 두고, 예외 카테고리가 없으면 0 으로 표시
-    const groups: Record<string, ReturnType<typeof empty>> = {};
+    const emptyCats = (): Record<string, number> => {
+      const obj: Record<string, number> = {};
+      for (const c of cats) obj[c] = 0;
+      return obj;
+    };
+    // 변동지출 전체에서 등장한 모든 월/연 을 키로 두고 등록된 카테고리 amount 를 누적
+    const groups: Record<string, Record<string, number>> = {};
     for (const item of data.variableExpenses) {
       const key = keyOf(item.date);
-      if (!groups[key]) groups[key] = empty();
+      if (!groups[key]) groups[key] = emptyCats();
     }
     for (const item of data.variableExpenses) {
-      if (!exceptionCategories.includes(item.category)) continue;
+      if (!cats.includes(item.category)) continue;
       const key = keyOf(item.date);
-      groups[key][item.category as keyof ReturnType<typeof empty>] += item.amount;
+      groups[key][item.category] += item.amount;
     }
     return Object.entries(groups)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([period, values]) => ({ period, ...values }));
-  }, [data.variableExpenses, data.analysisPeriod]);
+  }, [data.variableExpenses, data.analysisPeriod, data.expenseCategories]);
+
+  const categoryLegend = useMemo(
+    () => data.expenseCategories.map((cat, i) => ({ key: cat, color: categoryPalette[i % categoryPalette.length] })),
+    [data.expenseCategories],
+  );
 
   const investmentsByBroker = useMemo(() => {
     return data.investmentProducts.reduce<Record<string, InvestmentProduct[]>>((acc, item) => {
@@ -813,22 +824,22 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
           <div className="mt-4 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold tracking-tight">예외 지출 통계</h3>
-                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">병원·경조사·의류·여행 카테고리 누적</p>
+                <h3 className="text-sm font-bold tracking-tight">카테고리별 지출 통계</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">등록된 모든 변동지출 카테고리 월간 누적</p>
               </div>
               <PeriodTabs value={data.analysisPeriod} onChange={(value) => setSavedData((current) => ({ ...current, analysisPeriod: value }))} />
             </div>
-            <CategoryLegend categories={exceptionLegend} />
-            {exceptionStats.length === 0 ? (
-              <p className="mt-6 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">아직 예외 지출 기록이 없습니다.</p>
+            <CategoryLegend categories={categoryLegend} />
+            {categoryStats.length === 0 ? (
+              <p className="mt-6 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">아직 변동지출 기록이 없습니다.</p>
             ) : (
               <ChartBox tall>
-                <BarChart data={exceptionStats} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barSize={28}>
+                <BarChart data={categoryStats} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barSize={28}>
                   <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
                   <XAxis dataKey="period" tickFormatter={(value) => formatPeriodLabel(value, data.analysisPeriod)} tickLine={false} axisLine={false} tick={chartTick} />
                   <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
                   <Tooltip content={<MoneyTooltip labelFormatter={(value) => formatPeriodLabel(String(value), data.analysisPeriod)} />} cursor={{ fill: "currentColor", fillOpacity: 0.04 }} />
-                  {exceptionLegend.map((item) => (
+                  {categoryLegend.map((item) => (
                     <Bar
                       key={item.key}
                       dataKey={item.key}
@@ -2123,13 +2134,6 @@ function ChartBox({ children, tall = false }: { children: ReactElement; tall?: b
 }
 
 const chartTick = { fill: "currentColor", fontSize: 11, opacity: 0.7 } as const;
-
-const exceptionLegend = [
-  { key: "병원", color: "#14b8a6" },
-  { key: "경조사", color: "#f59e0b" },
-  { key: "의류", color: "#6366f1" },
-  { key: "여행", color: "#ef4444" },
-] as const;
 
 function formatWonAxis(value: number | string) {
   const n = Number(value);
