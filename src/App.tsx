@@ -1,4 +1,4 @@
-import { ChangeEvent, PointerEvent, ReactElement, ReactNode, WheelEvent as ReactWheelEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, PointerEvent, ReactElement, ReactNode, WheelEvent as ReactWheelEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Area,
@@ -828,18 +828,15 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                   <XAxis dataKey="period" tickFormatter={(value) => formatPeriodLabel(value, data.analysisPeriod)} tickLine={false} axisLine={false} tick={chartTick} />
                   <YAxis tickFormatter={formatWonAxis} tickLine={false} axisLine={false} width={48} tick={chartTick} />
                   <Tooltip content={<MoneyTooltip labelFormatter={(value) => formatPeriodLabel(String(value), data.analysisPeriod)} />} cursor={{ fill: "currentColor", fillOpacity: 0.04 }} />
-                  {exceptionLegend.map((item, index) => {
-                    const isLast = index === exceptionLegend.length - 1;
-                    return (
-                      <Bar
-                        key={item.key}
-                        dataKey={item.key}
-                        stackId="a"
-                        fill={item.color}
-                        radius={isLast ? [8, 8, 0, 0] : 0}
-                      />
-                    );
-                  })}
+                  {exceptionLegend.map((item) => (
+                    <Bar
+                      key={item.key}
+                      dataKey={item.key}
+                      stackId="a"
+                      fill={item.color}
+                      radius={0}
+                    />
+                  ))}
                 </BarChart>
               </ChartBox>
             )}
@@ -1788,7 +1785,8 @@ function FormattedNumberInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const caretAfterRender = useRef<number | null>(null);
 
-  useEffect(() => {
+  // setSelectionRange 는 paint 전에 적용돼야 깜빡임/초기화 인상이 없음 → useLayoutEffect
+  useLayoutEffect(() => {
     if (caretAfterRender.current === null || !inputRef.current) return;
     const pos = caretAfterRender.current;
     inputRef.current.setSelectionRange(pos, pos);
