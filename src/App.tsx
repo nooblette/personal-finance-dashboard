@@ -446,7 +446,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
           <EditableTable<InvestmentProduct>
             columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
-            columnWidths={[undefined, "8rem", "9.5rem", undefined, "5.5rem", "8.5rem"]}
+            columnWidths={["7rem", "9rem", "9.5rem", "9rem", "5.5rem", "8.5rem"]}
             items={data.investmentProducts}
             emptyMessage="투자 항목을 추가하면 표시됩니다."
             displayCells={(item) => [
@@ -639,7 +639,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
           </div>
           <EditableTable<FixedExpense>
             columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
-            columnWidths={["4.5rem", undefined, "7rem", "7rem", "6.5rem", "10rem", undefined]}
+            columnWidths={["4.5rem", "8rem", "7rem", "7rem", "6.5rem", "10rem", "9rem"]}
             items={sortedFixedExpenses}
             displayCells={(item) => {
               const kind = paymentKind(item.paymentMethod);
