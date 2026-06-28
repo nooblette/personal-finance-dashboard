@@ -845,7 +845,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                       dataKey={item.key}
                       stackId="a"
                       fill={item.color}
-                      radius={0}
+                      radius={[4, 4, 0, 0]}
                     />
                   ))}
                 </BarChart>
