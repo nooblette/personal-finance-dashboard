@@ -1,4 +1,4 @@
-import { PointerEvent, ReactElement, ReactNode, WheelEvent as ReactWheelEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, PointerEvent, ReactElement, ReactNode, WheelEvent as ReactWheelEvent, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Area,
@@ -1625,11 +1625,10 @@ function IncomeBox({
             <div className="mt-3 flex flex-col gap-1.5">
               <label className="flex items-center gap-2 text-xs">
                 <span className="w-12 shrink-0 text-zinc-500 dark:text-zinc-400">월급</span>
-                <input
+                <FormattedNumberInput
                   className="field h-9 flex-1 min-w-0"
-                  inputMode="numeric"
-                  value={format.format(draft.salary)}
-                  onChange={(event) => setDraft({ ...draft, salary: toNumber(event.target.value) })}
+                  value={draft.salary}
+                  onChange={(next) => setDraft({ ...draft, salary: next })}
                   autoFocus
                 />
               </label>
@@ -1641,11 +1640,10 @@ function IncomeBox({
                     value={item.name}
                     onChange={(event) => setDraft({ ...draft, sideIncomes: draft.sideIncomes.map((row) => (row.id === item.id ? { ...row, name: event.target.value } : row)) })}
                   />
-                  <input
+                  <FormattedNumberInput
                     className="field h-9 w-28 shrink-0 text-right"
-                    inputMode="numeric"
-                    value={format.format(item.amount)}
-                    onChange={(event) => setDraft({ ...draft, sideIncomes: draft.sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: toNumber(event.target.value) } : row)) })}
+                    value={item.amount}
+                    onChange={(next) => setDraft({ ...draft, sideIncomes: draft.sideIncomes.map((row) => (row.id === item.id ? { ...row, amount: next } : row)) })}
                   />
                   <button
                     type="button"
@@ -1702,11 +1700,10 @@ function InvestmentBaseControl({ value, fallback, onChange }: { value: number | 
       {isAuto ? (
         <p className="mt-1 text-base font-bold tabular-nums">{won(effective)} <span className="ml-1 text-xs font-normal text-zinc-500 dark:text-zinc-400">(가처분소득)</span></p>
       ) : (
-        <input
+        <FormattedNumberInput
           className="field mt-1 h-9"
-          inputMode="numeric"
-          value={format.format(value ?? 0)}
-          onChange={(event) => onChange(toNumber(event.target.value))}
+          value={value ?? 0}
+          onChange={onChange}
         />
       )}
     </div>
@@ -1736,7 +1733,7 @@ function Money({ label, value, onChange }: { label: string; value: number; onCha
       {readOnly ? (
         <div className="flex h-11 items-center rounded-md border border-transparent bg-zinc-50 px-3 text-sm font-semibold dark:bg-zinc-950">{won(value)}</div>
       ) : (
-        <input className="field h-11" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
+        <FormattedNumberInput className="field h-11" value={value} onChange={onChange} />
       )}
     </label>
   );
@@ -1754,6 +1751,68 @@ function Text({ value, onChange }: { value: string; onChange: (value: string) =>
   return <input className="field h-10 w-full" value={value} onChange={(event) => onChange(event.target.value)} />;
 }
 
+// 천단위 콤마 유지하면서도 사용자가 커서를 둔 위치 그대로 편집 가능한 숫자 입력.
+// controlled input 이라 setState 후 re-render 시 caret 이 끝으로 튀던 문제를 onChange 직전
+// 콤마 제외 digit index 를 기준으로 caret 위치 재계산해 setSelectionRange 로 복원.
+function FormattedNumberInput({
+  value,
+  onChange,
+  className,
+  autoFocus,
+}: {
+  value: number;
+  onChange: (next: number) => void;
+  className?: string;
+  autoFocus?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const caretAfterRender = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (caretAfterRender.current === null || !inputRef.current) return;
+    const pos = caretAfterRender.current;
+    inputRef.current.setSelectionRange(pos, pos);
+    caretAfterRender.current = null;
+  });
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    const raw = input.value;
+    const caretBefore = input.selectionStart ?? raw.length;
+    const digitsBefore = raw.slice(0, caretBefore).replace(/[^0-9]/g, "").length;
+    const next = toNumber(raw);
+    const formatted = format.format(next);
+    let caretAfter = formatted.length;
+    if (digitsBefore === 0) {
+      caretAfter = 0;
+    } else {
+      let count = 0;
+      for (let i = 0; i < formatted.length; i++) {
+        if (/[0-9]/.test(formatted[i])) {
+          count++;
+          if (count === digitsBefore) {
+            caretAfter = i + 1;
+            break;
+          }
+        }
+      }
+    }
+    caretAfterRender.current = caretAfter;
+    onChange(next);
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      className={className}
+      inputMode="numeric"
+      value={format.format(value)}
+      onChange={handleChange}
+      autoFocus={autoFocus}
+    />
+  );
+}
+
 function NumberBox({ value, onChange, suffix }: { value: number; onChange: (value: number) => void; suffix?: string }) {
   const readOnly = useReadOnly();
   if (readOnly) {
@@ -1761,7 +1820,7 @@ function NumberBox({ value, onChange, suffix }: { value: number; onChange: (valu
   }
   return (
     <div className="flex w-full items-center gap-1">
-      <input className="field h-10 min-w-0 flex-1" inputMode="numeric" value={format.format(value)} onChange={(event) => onChange(toNumber(event.target.value))} />
+      <FormattedNumberInput value={value} onChange={onChange} className="field h-10 min-w-0 flex-1" />
       {suffix && <span className="text-sm text-zinc-500">{suffix}</span>}
     </div>
   );
