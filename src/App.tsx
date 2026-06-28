@@ -1711,19 +1711,29 @@ function InvestmentBaseControl({ value, fallback, onChange }: { value: number | 
       </div>
     );
   }
+  const modeButtonBase = "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition";
   return (
     <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">투자 기준액</p>
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
-          <input
-            type="checkbox"
-            className="h-3.5 w-3.5 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 dark:border-zinc-600 dark:bg-zinc-900"
-            checked={!isAuto}
-            onChange={(event) => onChange(event.target.checked ? fallback : null)}
-          />
-          직접 입력
-        </label>
+        <div className="inline-flex rounded-full border border-zinc-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-900">
+          <button
+            type="button"
+            aria-pressed={isAuto}
+            className={`${modeButtonBase} ${isAuto ? "bg-teal-600 text-white" : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"}`}
+            onClick={() => onChange(null)}
+          >
+            자동
+          </button>
+          <button
+            type="button"
+            aria-pressed={!isAuto}
+            className={`${modeButtonBase} ${!isAuto ? "bg-teal-600 text-white" : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"}`}
+            onClick={() => onChange(value ?? fallback)}
+          >
+            수동
+          </button>
+        </div>
       </div>
       {isAuto ? (
         <p className="mt-1 text-base font-bold tabular-nums">{won(effective)} <span className="ml-1 text-xs font-normal text-zinc-500 dark:text-zinc-400">(가처분소득)</span></p>
