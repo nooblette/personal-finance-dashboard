@@ -1700,17 +1700,8 @@ function IncomeBox({
 }
 
 function InvestmentBaseControl({ value, fallback, onChange }: { value: number | null; fallback: number; onChange: (value: number | null) => void }) {
-  const readOnly = useReadOnly();
   const isAuto = value === null;
   const effective = isAuto ? fallback : value;
-  if (readOnly) {
-    return (
-      <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
-        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">투자 기준액 {isAuto && <span className="ml-1 rounded-full bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">자동</span>}</p>
-        <p className="mt-1 text-base font-bold tabular-nums">{won(effective)}</p>
-      </div>
-    );
-  }
   const modeButtonBase = "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition";
   return (
     <div className="rounded-xl bg-zinc-50 px-4 py-2.5 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800">
