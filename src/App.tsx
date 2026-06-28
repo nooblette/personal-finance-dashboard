@@ -39,6 +39,7 @@ type FixedExpense = {
   cardName?: string;
   included?: boolean;
   paymentDay?: string;
+  category?: string;
 };
 type PaymentKind = "card" | "transfer" | "other";
 type VariableExpense = { id: string; date: string; category: ExpenseCategory; amount: number; memo: string };
@@ -62,6 +63,7 @@ type DashboardData = {
   cards: Card[];
   investmentBase: number | null;
   expenseCategories: string[];
+  fixedExpenseCategories: string[];
   analysisPeriod: Period;
   darkMode: boolean;
   flowPositions: Record<string, FlowPosition>;
@@ -71,6 +73,7 @@ type DashboardData = {
 const ViewModeContext = createContext(true);
 const useReadOnly = () => useContext(ViewModeContext);
 const defaultExpenseCategories: string[] = ["식비", "병원", "의류", "여행", "경조사", "기타"];
+const defaultFixedExpenseCategories: string[] = ["주거비", "통신비", "구독", "생활비", "보험", "교통", "기타"];
 const paymentMethodOptions: string[] = ["카드", "계좌이체", "자동이체", "현금", "기타"];
 const investmentAccountTypeOptions: string[] = ["위탁(일반)", "ISA", "해외주식", "연금저축", "IRP", "CMA", "기타"];
 
@@ -122,6 +125,7 @@ const defaultData: DashboardData = {
   ],
   investmentBase: null,
   expenseCategories: defaultExpenseCategories,
+  fixedExpenseCategories: defaultFixedExpenseCategories,
   analysisPeriod: "monthly",
   darkMode: false,
   flowPositions: {},
@@ -142,6 +146,9 @@ function normalizeDashboardData(raw: unknown): DashboardData {
   if (next.analysisPeriod !== "monthly" && next.analysisPeriod !== "yearly") next.analysisPeriod = "monthly";
   if (!Array.isArray(next.expenseCategories) || next.expenseCategories.length === 0) {
     next.expenseCategories = defaultExpenseCategories;
+  }
+  if (!Array.isArray(next.fixedExpenseCategories) || next.fixedExpenseCategories.length === 0) {
+    next.fixedExpenseCategories = defaultFixedExpenseCategories;
   }
   if (!Array.isArray(next.sideIncomes)) {
     const legacy = typeof parsed.sideIncome === "number" ? parsed.sideIncome : 0;
@@ -239,15 +246,21 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
 
   const exceptionStats = useMemo(() => {
     const empty = () => ({ 병원: 0, 경조사: 0, 의류: 0, 여행: 0 });
-    const groups = data.variableExpenses
-      .filter((item) => exceptionCategories.includes(item.category))
-      .reduce<Record<string, ReturnType<typeof empty>>>((acc, item) => {
-        const date = new Date(`${item.date}T00:00:00`);
-        const key = data.analysisPeriod === "yearly" ? `${date.getFullYear()}` : item.date.slice(0, 7);
-        acc[key] = acc[key] || empty();
-        acc[key][item.category as keyof ReturnType<typeof empty>] += item.amount;
-        return acc;
-      }, {});
+    const keyOf = (date: string) => {
+      const d = new Date(`${date}T00:00:00`);
+      return data.analysisPeriod === "yearly" ? `${d.getFullYear()}` : date.slice(0, 7);
+    };
+    // 변동지출 전체에서 등장한 모든 월/연을 키로 두고, 예외 카테고리가 없으면 0 으로 표시
+    const groups: Record<string, ReturnType<typeof empty>> = {};
+    for (const item of data.variableExpenses) {
+      const key = keyOf(item.date);
+      if (!groups[key]) groups[key] = empty();
+    }
+    for (const item of data.variableExpenses) {
+      if (!exceptionCategories.includes(item.category)) continue;
+      const key = keyOf(item.date);
+      groups[key][item.category as keyof ReturnType<typeof empty>] += item.amount;
+    }
     return Object.entries(groups)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([period, values]) => ({ period, ...values }));
@@ -616,7 +629,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               icon={<Plus size={16} />}
               onClick={() => setSavedData((current) => ({
                 ...current,
-                fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "" }],
+                fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "", category: current.fixedExpenseCategories[0] ?? "기타" }],
               }))}
             />
             <label className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
@@ -638,8 +651,8 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             </label>
           </div>
           <EditableTable<FixedExpense>
-            columns={["포함", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
-            columnWidths={["4.5rem", "8rem", "7rem", "7rem", "6.5rem", "10rem", "9rem"]}
+            columns={["포함", "카테고리", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
+            columnWidths={["4.5rem", "8rem", "8rem", "7rem", "7rem", "6.5rem", "10rem", "9rem"]}
             items={sortedFixedExpenses}
             displayCells={(item) => {
               const kind = paymentKind(item.paymentMethod);
@@ -647,6 +660,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               const detailValue = kind === "card" ? item.cardName : kind === "transfer" ? item.account : "";
               return [
                 <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${item.included !== false ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>{item.included !== false ? "포함" : "제외"}</span>,
+                <span className="text-sm">{item.category || "-"}</span>,
                 <span className="block min-w-0 truncate text-sm" title={item.name || "-"}>{item.name || "-"}</span>,
                 <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
                 <span className="text-sm tabular-nums">{item.paymentDay ? `${item.paymentDay}일` : "-"}</span>,
@@ -659,6 +673,12 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               const kind = paymentKind(draft.paymentMethod);
               return [
                 <IncludedToggle value={draft.included !== false} onChange={(value) => setDraft({ ...draft, included: value })} />,
+                <CategorySelect
+                  value={draft.category ?? ""}
+                  options={data.fixedExpenseCategories}
+                  onChange={(value) => setDraft({ ...draft, category: value })}
+                  onAddCategory={(name) => setSavedData((current) => ({ ...current, fixedExpenseCategories: Array.from(new Set([...current.fixedExpenseCategories, name])) }))}
+                />,
                 <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
                 <NumberBox value={draft.amount} onChange={(value) => setDraft({ ...draft, amount: value })} />,
                 <PaymentDayField value={draft.paymentDay ?? ""} onChange={(value) => setDraft({ ...draft, paymentDay: value })} />,
