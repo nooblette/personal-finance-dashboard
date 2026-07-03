@@ -498,37 +498,53 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             />
           </div>
           <PortfolioDonut products={data.investmentProducts} baseAmount={investmentBaseAmount} />
-          <EditableTable<InvestmentProduct>
-            columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
-            columnWidths={["7rem", "9rem", "9.5rem", "9rem", "5.5rem", "8.5rem"]}
-            items={data.investmentProducts}
-            emptyMessage="투자 항목을 추가하면 표시됩니다."
-            displayCells={(item) => [
-              <span className="text-sm">{item.destination || "-"}</span>,
-              <BrandLabel brand={item.broker} hint="sec" size={24} />,
-              <span className="text-sm">{item.accountType}</span>,
-              <span className="text-sm tabular-nums">{item.accountNumber || "-"}</span>,
-              <span className="text-sm tabular-nums">{item.ratio}%</span>,
-              <span className="text-sm font-medium tabular-nums">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
-            ]}
-            editCells={(draft, setDraft) => [
-              <Text value={draft.destination} onChange={(value) => setDraft({ ...draft, destination: value })} />,
-              <BrandField value={draft.broker} kind="sec" onChange={(value) => setDraft({ ...draft, broker: value })} />,
-              <InvestmentAccountTypeSelect value={draft.accountType} onChange={(value) => setDraft({ ...draft, accountType: value })} />,
-              <Text value={draft.accountNumber ?? ""} onChange={(value) => setDraft({ ...draft, accountNumber: value })} />,
-              <NumberBox value={draft.ratio} suffix="%" onChange={(value) => setDraft({ ...draft, ratio: Math.min(value, 100) })} />,
-              <span className="text-sm font-medium tabular-nums text-zinc-500">{won(investmentBaseAmount * (draft.ratio / 100))}</span>,
-            ]}
-            onSave={(original, draft) => {
-              const next = data.investmentProducts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row));
-              if (next.reduce((sum, row) => sum + row.ratio, 0) > 100) {
-                window.alert("투자 비율 합계가 100%를 초과할 수 없습니다.");
-                return;
-              }
-              setSavedData((current) => ({ ...current, investmentProducts: next }));
-            }}
-            onDelete={(item) => setSavedData((current) => ({ ...current, investmentProducts: current.investmentProducts.filter((row) => row.id !== item.id) }))}
-          />
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
+            aria-expanded={portfolioListOpen}
+            onClick={() => setPortfolioListOpen((open) => !open)}
+          >
+            <span className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold">종목 목록</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">{data.investmentProducts.length}건</span>
+            </span>
+            <ChevronDown size={16} className={`text-zinc-500 transition dark:text-zinc-400 ${portfolioListOpen ? "rotate-180" : ""}`} />
+          </button>
+          {portfolioListOpen && (
+            <div className="mt-3">
+              <EditableTable<InvestmentProduct>
+                columns={["투자처", "증권사", "증권계좌 유형", "증권계좌번호", "투자비율", "투자금액"]}
+                columnWidths={["7rem", "9rem", "9.5rem", "9rem", "5.5rem", "8.5rem"]}
+                items={data.investmentProducts}
+                emptyMessage="투자 항목을 추가하면 표시됩니다."
+                displayCells={(item) => [
+                  <span className="text-sm">{item.destination || "-"}</span>,
+                  <BrandLabel brand={item.broker} hint="sec" size={24} />,
+                  <span className="text-sm">{item.accountType}</span>,
+                  <span className="text-sm tabular-nums">{item.accountNumber || "-"}</span>,
+                  <span className="text-sm tabular-nums">{item.ratio}%</span>,
+                  <span className="text-sm font-medium tabular-nums">{won(investmentBaseAmount * (item.ratio / 100))}</span>,
+                ]}
+                editCells={(draft, setDraft) => [
+                  <Text value={draft.destination} onChange={(value) => setDraft({ ...draft, destination: value })} />,
+                  <BrandField value={draft.broker} kind="sec" onChange={(value) => setDraft({ ...draft, broker: value })} />,
+                  <InvestmentAccountTypeSelect value={draft.accountType} onChange={(value) => setDraft({ ...draft, accountType: value })} />,
+                  <Text value={draft.accountNumber ?? ""} onChange={(value) => setDraft({ ...draft, accountNumber: value })} />,
+                  <NumberBox value={draft.ratio} suffix="%" onChange={(value) => setDraft({ ...draft, ratio: Math.min(value, 100) })} />,
+                  <span className="text-sm font-medium tabular-nums text-zinc-500">{won(investmentBaseAmount * (draft.ratio / 100))}</span>,
+                ]}
+                onSave={(original, draft) => {
+                  const next = data.investmentProducts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row));
+                  if (next.reduce((sum, row) => sum + row.ratio, 0) > 100) {
+                    window.alert("투자 비율 합계가 100%를 초과할 수 없습니다.");
+                    return;
+                  }
+                  setSavedData((current) => ({ ...current, investmentProducts: next }));
+                }}
+                onDelete={(item) => setSavedData((current) => ({ ...current, investmentProducts: current.investmentProducts.filter((row) => row.id !== item.id) }))}
+              />
+            </div>
+          )}
           <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="text-base font-semibold">투자 실행</h3>
