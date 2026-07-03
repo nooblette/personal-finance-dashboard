@@ -706,10 +706,13 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             <Button
               label="추가"
               icon={<Plus size={16} />}
-              onClick={() => setSavedData((current) => ({
-                ...current,
-                fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "", category: current.fixedExpenseCategories[0] ?? "기타" }],
-              }))}
+              onClick={() => {
+                setSavedData((current) => ({
+                  ...current,
+                  fixedExpenses: [...current.fixedExpenses, { id: newId(), name: "", amount: 0, paymentMethod: "카드", included: true, paymentDay: "", category: current.fixedExpenseCategories[0] ?? "기타" }],
+                }));
+                setFixedDetailOpen(true);
+              }}
             />
             <label className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
               정렬
@@ -729,58 +732,74 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
               </select>
             </label>
           </div>
-          <EditableTable<FixedExpense>
-            columns={["포함", "카테고리", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
-            columnWidths={["4.5rem", "8rem", "8rem", "7rem", "7rem", "6.5rem", "10rem", "9rem"]}
-            items={sortedFixedExpenses}
-            displayCells={(item) => {
-              const kind = paymentKind(item.paymentMethod);
-              const brandValue = kind === "card" ? item.cardIssuer : kind === "transfer" ? item.bank : "";
-              const detailValue = kind === "card" ? item.cardName : kind === "transfer" ? item.account : "";
-              return [
-                <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${item.included !== false ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>{item.included !== false ? "포함" : "제외"}</span>,
-                <span className="text-sm">{item.category || "-"}</span>,
-                <span className="block min-w-0 truncate text-sm" title={item.name || "-"}>{item.name || "-"}</span>,
-                <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
-                <span className="text-sm tabular-nums">{item.paymentDay ? `${item.paymentDay}일` : "-"}</span>,
-                <span className="text-sm">{item.paymentMethod || "-"}</span>,
-                kind === "other" ? <span className="text-sm text-zinc-400">-</span> : <BrandLabel brand={brandValue} hint={kind === "card" ? "card" : "bank"} size={24} />,
-                <span className="text-sm">{kind === "other" ? "-" : (detailValue || "-")}</span>,
-              ];
-            }}
-            editCells={(draft, setDraft) => {
-              const kind = paymentKind(draft.paymentMethod);
-              return [
-                <IncludedToggle value={draft.included !== false} onChange={(value) => setDraft({ ...draft, included: value })} />,
-                <CategorySelect
-                  value={draft.category ?? ""}
-                  options={data.fixedExpenseCategories}
-                  onChange={(value) => setDraft({ ...draft, category: value })}
-                  onAddCategory={(name) => setSavedData((current) => ({ ...current, fixedExpenseCategories: Array.from(new Set([...current.fixedExpenseCategories, name])) }))}
-                />,
-                <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
-                <NumberBox value={draft.amount} onChange={(value) => setDraft({ ...draft, amount: value })} />,
-                <PaymentDayField value={draft.paymentDay ?? ""} onChange={(value) => setDraft({ ...draft, paymentDay: value })} />,
-                <PaymentMethodSelect value={draft.paymentMethod} onChange={(value) => setDraft({ ...draft, paymentMethod: value })} />,
-                <PaymentBrandField
-                  kind={kind}
-                  cardValue={draft.cardIssuer ?? ""}
-                  transferValue={draft.bank ?? ""}
-                  onCardChange={(value) => setDraft({ ...draft, cardIssuer: value })}
-                  onTransferChange={(value) => setDraft({ ...draft, bank: value })}
-                />,
-                <PaymentDetailField
-                  kind={kind}
-                  cardValue={draft.cardName ?? ""}
-                  transferValue={draft.account ?? ""}
-                  onCardChange={(value) => setDraft({ ...draft, cardName: value })}
-                  onTransferChange={(value) => setDraft({ ...draft, account: value })}
-                />,
-              ];
-            }}
-            onSave={(original, draft) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
-            onDelete={(item) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.filter((row) => row.id !== item.id) }))}
-          />
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-left ring-1 ring-zinc-200/60 transition hover:bg-zinc-100 dark:bg-zinc-950 dark:ring-zinc-800 dark:hover:bg-zinc-800/60"
+            aria-expanded={fixedDetailOpen}
+            onClick={() => setFixedDetailOpen((open) => !open)}
+          >
+            <span className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold">상세 내역</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">{data.fixedExpenses.length}건</span>
+            </span>
+            <ChevronDown size={16} className={`text-zinc-500 transition dark:text-zinc-400 ${fixedDetailOpen ? "rotate-180" : ""}`} />
+          </button>
+          {fixedDetailOpen && (
+            <div className="mt-3">
+              <EditableTable<FixedExpense>
+                columns={["포함", "카테고리", "이름", "금액", "이체일", "결제수단", "결제 은행/카드사", "결제 계좌/카드명"]}
+                columnWidths={["4.5rem", "8rem", "8rem", "7rem", "7rem", "6.5rem", "10rem", "9rem"]}
+                items={sortedFixedExpenses}
+                displayCells={(item) => {
+                  const kind = paymentKind(item.paymentMethod);
+                  const brandValue = kind === "card" ? item.cardIssuer : kind === "transfer" ? item.bank : "";
+                  const detailValue = kind === "card" ? item.cardName : kind === "transfer" ? item.account : "";
+                  return [
+                    <span className={`inline-flex h-6 items-center justify-center rounded-full px-2 text-[11px] font-medium ${item.included !== false ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>{item.included !== false ? "포함" : "제외"}</span>,
+                    <span className="text-sm">{item.category || "-"}</span>,
+                    <span className="block min-w-0 truncate text-sm" title={item.name || "-"}>{item.name || "-"}</span>,
+                    <span className="text-sm tabular-nums">{format.format(item.amount)}</span>,
+                    <span className="text-sm tabular-nums">{item.paymentDay ? `${item.paymentDay}일` : "-"}</span>,
+                    <span className="text-sm">{item.paymentMethod || "-"}</span>,
+                    kind === "other" ? <span className="text-sm text-zinc-400">-</span> : <BrandLabel brand={brandValue} hint={kind === "card" ? "card" : "bank"} size={24} />,
+                    <span className="text-sm">{kind === "other" ? "-" : (detailValue || "-")}</span>,
+                  ];
+                }}
+                editCells={(draft, setDraft) => {
+                  const kind = paymentKind(draft.paymentMethod);
+                  return [
+                    <IncludedToggle value={draft.included !== false} onChange={(value) => setDraft({ ...draft, included: value })} />,
+                    <CategorySelect
+                      value={draft.category ?? ""}
+                      options={data.fixedExpenseCategories}
+                      onChange={(value) => setDraft({ ...draft, category: value })}
+                      onAddCategory={(name) => setSavedData((current) => ({ ...current, fixedExpenseCategories: Array.from(new Set([...current.fixedExpenseCategories, name])) }))}
+                    />,
+                    <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                    <NumberBox value={draft.amount} onChange={(value) => setDraft({ ...draft, amount: value })} />,
+                    <PaymentDayField value={draft.paymentDay ?? ""} onChange={(value) => setDraft({ ...draft, paymentDay: value })} />,
+                    <PaymentMethodSelect value={draft.paymentMethod} onChange={(value) => setDraft({ ...draft, paymentMethod: value })} />,
+                    <PaymentBrandField
+                      kind={kind}
+                      cardValue={draft.cardIssuer ?? ""}
+                      transferValue={draft.bank ?? ""}
+                      onCardChange={(value) => setDraft({ ...draft, cardIssuer: value })}
+                      onTransferChange={(value) => setDraft({ ...draft, bank: value })}
+                    />,
+                    <PaymentDetailField
+                      kind={kind}
+                      cardValue={draft.cardName ?? ""}
+                      transferValue={draft.account ?? ""}
+                      onCardChange={(value) => setDraft({ ...draft, cardName: value })}
+                      onTransferChange={(value) => setDraft({ ...draft, account: value })}
+                    />,
+                  ];
+                }}
+                onSave={(original, draft) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                onDelete={(item) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.filter((row) => row.id !== item.id) }))}
+              />
+            </div>
+          )}
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
 
           <div className="mt-4 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
