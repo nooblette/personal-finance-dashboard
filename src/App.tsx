@@ -179,6 +179,11 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
   const [fixedSort, setFixedSort] = useState<"input" | "name" | "amount-desc" | "amount-asc" | "day-asc" | "day-desc" | "method">("input");
   const [variableSort, setVariableSort] = useState<"date-desc" | "date-asc" | "input">("date-desc");
   const [flowNodeOpen, setFlowNodeOpen] = useState<string | null>(null);
+  const [fixedCategoryFilter, setFixedCategoryFilter] = useState<"included" | "excluded" | "all">("included");
+  const [portfolioListOpen, setPortfolioListOpen] = useState(true);
+  const [accountsOpen, setAccountsOpen] = useState(true);
+  const [cardsOpen, setCardsOpen] = useState(true);
+  const [fixedDetailOpen, setFixedDetailOpen] = useState(true);
   const data = savedData;
 
   // 첫 마운트는 hydrate 결과 그대로이므로 onChange 트리거 skip — 이후 사용자 변경분만 위로 전달
@@ -276,6 +281,31 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
     () => data.expenseCategories.map((cat, i) => ({ key: cat, color: categoryPalette[i % categoryPalette.length] })),
     [data.expenseCategories],
   );
+
+  const fixedCategoryStats = useMemo(() => {
+    const filtered = data.fixedExpenses.filter((item) => {
+      if (fixedCategoryFilter === "included") return item.included !== false;
+      if (fixedCategoryFilter === "excluded") return item.included === false;
+      return true;
+    });
+    // 등록된 카테고리 순서를 유지하고 미등록/기타 카테고리는 뒤에 붙여 팔레트 색이 안정적으로 배정되게
+    const catOrder: string[] = [...data.fixedExpenseCategories];
+    const totals = new Map<string, number>();
+    for (const cat of catOrder) totals.set(cat, 0);
+    for (const item of filtered) {
+      const cat = item.category && item.category.length > 0 ? item.category : "기타";
+      if (!totals.has(cat)) {
+        totals.set(cat, 0);
+        catOrder.push(cat);
+      }
+      totals.set(cat, (totals.get(cat) ?? 0) + item.amount);
+    }
+    return catOrder
+      .map((name, index) => ({ name, value: totals.get(name) ?? 0, color: categoryPalette[index % categoryPalette.length] }))
+      .filter((row) => row.value > 0);
+  }, [data.fixedExpenses, data.fixedExpenseCategories, fixedCategoryFilter]);
+
+  const fixedCategoryTotal = fixedCategoryStats.reduce((sum, item) => sum + item.value, 0);
 
   const investmentsByBroker = useMemo(() => {
     return data.investmentProducts.reduce<Record<string, InvestmentProduct[]>>((acc, item) => {
@@ -714,6 +744,53 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             onDelete={(item) => setSavedData((current) => ({ ...current, fixedExpenses: current.fixedExpenses.filter((row) => row.id !== item.id) }))}
           />
           <div className="mt-4"><Readout label="총 고정 지출" value={won(totalFixed)} /></div>
+
+          <div className="mt-4 rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-200/60 dark:bg-zinc-950 dark:ring-zinc-800 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold tracking-tight">카테고리별 지출 통계</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  {fixedCategoryFilter === "included" ? "포함 항목" : fixedCategoryFilter === "excluded" ? "제외 항목" : "전체 항목"} 카테고리 분포
+                </p>
+              </div>
+              <IncludeFilterTabs value={fixedCategoryFilter} onChange={setFixedCategoryFilter} />
+            </div>
+            {fixedCategoryStats.length === 0 ? (
+              <p className="mt-6 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">해당 조건의 고정지출이 없습니다.</p>
+            ) : (
+              <div className="grid gap-5 lg:grid-cols-[220px_1fr] lg:items-center">
+                <div className="relative mx-auto h-[200px] w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={fixedCategoryStats} dataKey="value" innerRadius={56} outerRadius={84} stroke="none" paddingAngle={1.5}>
+                        {fixedCategoryStats.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CategoryDonutTooltip />} wrapperStyle={{ zIndex: 50, outline: "none" }} allowEscapeViewBox={{ x: true, y: true }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">합계</span>
+                    <span className="mt-0.5 text-base font-bold tabular-nums">{won(fixedCategoryTotal)}</span>
+                  </div>
+                </div>
+                <ul className="grid gap-2 text-sm">
+                  {fixedCategoryStats.map((item) => {
+                    const percent = fixedCategoryTotal > 0 ? Math.round((item.value / fixedCategoryTotal) * 100) : 0;
+                    return (
+                      <li key={item.name} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
+                        <span className="min-w-0 truncate font-medium">{item.name}</span>
+                        <span className="ml-auto whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">{percent}%</span>
+                        <span className="w-24 text-right font-semibold tabular-nums">{won(item.value)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
         </Section>
 
         <Section title="변동 지출">
@@ -998,6 +1075,32 @@ function FlowNodeDialog({
           <button type="button" className="inline-flex h-9 items-center rounded-full bg-teal-700 px-4 text-xs font-semibold text-white dark:bg-teal-500 dark:text-zinc-950" onClick={save}>저장</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function IncludeFilterTabs({ value, onChange }: { value: "included" | "excluded" | "all"; onChange: (value: "included" | "excluded" | "all") => void }) {
+  const items: { value: "included" | "excluded" | "all"; label: string }[] = [
+    { value: "included", label: "포함" },
+    { value: "excluded", label: "제외" },
+    { value: "all", label: "전체" },
+  ];
+  return (
+    <div role="tablist" aria-label="포함/제외 필터" className="inline-flex h-9 rounded-md border border-zinc-200 bg-white p-0.5 text-sm font-medium shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      {items.map((item) => {
+        const active = value === item.value;
+        return (
+          <button
+            key={item.value}
+            role="tab"
+            aria-selected={active}
+            className={`min-w-12 rounded px-3 transition ${active ? "bg-teal-700 text-white shadow-sm dark:bg-teal-500 dark:text-zinc-950" : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"}`}
+            onClick={() => onChange(item.value)}
+          >
+            {item.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -2244,6 +2347,22 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{
       </div>
       {entry.broker && <p className="mt-1 text-zinc-500 dark:text-zinc-400">{entry.broker}</p>}
       <p className="mt-1 tabular-nums">{entry.value}% · {won(entry.amount)}</p>
+    </div>
+  );
+}
+
+function CategoryDonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name: string; value: number; color: string } }> }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0].payload;
+  if (!entry) return null;
+  return (
+    <div className="relative z-50 rounded-xl border border-zinc-200 p-3 text-xs shadow-xl dark:border-zinc-700" style={{ backgroundColor: "var(--tooltip-bg, #ffffff)" }}>
+      <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-white dark:bg-zinc-900" />
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
+        <span className="font-semibold">{entry.name}</span>
+      </div>
+      <p className="mt-1 tabular-nums">{won(entry.value)}</p>
     </div>
   );
 }
