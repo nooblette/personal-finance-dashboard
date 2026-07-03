@@ -603,7 +603,16 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
           <div className="mt-5 flex flex-col gap-5">
             <div className="min-w-0">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold tracking-tight">계좌</h3>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-md py-1 pr-1 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                  aria-expanded={accountsOpen}
+                  onClick={() => setAccountsOpen((open) => !open)}
+                >
+                  <h3 className="text-sm font-bold tracking-tight">계좌</h3>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">{data.accounts.length}건</span>
+                  <ChevronDown size={14} className={`text-zinc-500 transition dark:text-zinc-400 ${accountsOpen ? "rotate-180" : ""}`} />
+                </button>
                 <Button
                   label="추가"
                   icon={<Plus size={16} />}
@@ -613,30 +622,41 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                   }))}
                 />
               </div>
-              <EditableTable<Account>
-                columns={["은행/증권사", "계좌명", "계좌번호", "유형"]}
-                columnWidths={["10rem", undefined, undefined, "7rem"]}
-                items={data.accounts}
-                emptyMessage="계좌를 추가하면 흐름도에 노드가 표시됩니다."
-                displayCells={(item) => [
-                  <BrandLabel brand={item.bank} hint={item.type === "투자계좌" ? "sec" : "bank"} size={24} />,
-                  <span className="text-sm">{item.name || "-"}</span>,
-                  <span className="text-sm tabular-nums">{item.number || "-"}</span>,
-                  <span className="text-sm">{item.type}</span>,
-                ]}
-                editCells={(draft, setDraft) => [
-                  <BrandField value={draft.bank} kind={draft.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => setDraft({ ...draft, bank: value })} />,
-                  <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
-                  <Text value={draft.number} onChange={(value) => setDraft({ ...draft, number: value })} />,
-                  <Select value={draft.type} options={accountTypes} onChange={(value) => setDraft({ ...draft, type: value as AccountType })} />,
-                ]}
-                onSave={(original, draft) => setSavedData((current) => ({ ...current, accounts: current.accounts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
-                onDelete={(item) => setSavedData((current) => ({ ...current, accounts: current.accounts.filter((row) => row.id !== item.id) }))}
-              />
+              {accountsOpen && (
+                <EditableTable<Account>
+                  columns={["은행/증권사", "계좌명", "계좌번호", "유형"]}
+                  columnWidths={["10rem", undefined, undefined, "7rem"]}
+                  items={data.accounts}
+                  emptyMessage="계좌를 추가하면 흐름도에 노드가 표시됩니다."
+                  displayCells={(item) => [
+                    <BrandLabel brand={item.bank} hint={item.type === "투자계좌" ? "sec" : "bank"} size={24} />,
+                    <span className="text-sm">{item.name || "-"}</span>,
+                    <span className="text-sm tabular-nums">{item.number || "-"}</span>,
+                    <span className="text-sm">{item.type}</span>,
+                  ]}
+                  editCells={(draft, setDraft) => [
+                    <BrandField value={draft.bank} kind={draft.type === "투자계좌" ? "sec" : "bank"} onChange={(value) => setDraft({ ...draft, bank: value })} />,
+                    <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                    <Text value={draft.number} onChange={(value) => setDraft({ ...draft, number: value })} />,
+                    <Select value={draft.type} options={accountTypes} onChange={(value) => setDraft({ ...draft, type: value as AccountType })} />,
+                  ]}
+                  onSave={(original, draft) => setSavedData((current) => ({ ...current, accounts: current.accounts.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                  onDelete={(item) => setSavedData((current) => ({ ...current, accounts: current.accounts.filter((row) => row.id !== item.id) }))}
+                />
+              )}
             </div>
             <div className="min-w-0">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold tracking-tight">카드</h3>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-md py-1 pr-1 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                  aria-expanded={cardsOpen}
+                  onClick={() => setCardsOpen((open) => !open)}
+                >
+                  <h3 className="text-sm font-bold tracking-tight">카드</h3>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">{data.cards.length}건</span>
+                  <ChevronDown size={14} className={`text-zinc-500 transition dark:text-zinc-400 ${cardsOpen ? "rotate-180" : ""}`} />
+                </button>
                 <Button
                   label="추가"
                   icon={<Plus size={16} />}
@@ -646,35 +666,37 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
                   }))}
                 />
               </div>
-              <EditableTable<Card>
-                columns={["카드명", "카드사", "결제계좌"]}
-                columnWidths={[undefined, "10rem", undefined]}
-                items={data.cards}
-                emptyMessage="카드를 추가하면 흐름도에 노드가 표시됩니다."
-                displayCells={(item) => {
-                  const matched = data.accounts.find((account) => account.id === item.settlementAccountId);
-                  const settle = matched
-                    ? `${getBrand(matched.bank, matched.type === "투자계좌" ? "sec" : "bank")?.name ?? matched.bank} ${matched.name}`.trim()
-                    : item.settlementAccount || "-";
-                  return [
-                    <span className="text-sm">{item.name || "-"}</span>,
-                    <BrandLabel brand={item.issuer} hint="card" size={24} />,
-                    <span className="text-sm">{settle}</span>,
-                  ];
-                }}
-                editCells={(draft, setDraft) => [
-                  <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
-                  <BrandField value={draft.issuer} kind="card" onChange={(value) => setDraft({ ...draft, issuer: value })} />,
-                  <SettlementAccountSelect
-                    value={draft.settlementAccountId ?? ""}
-                    legacyText={draft.settlementAccount}
-                    accounts={data.accounts}
-                    onChange={(value) => setDraft({ ...draft, settlementAccountId: value, settlementAccount: "" })}
-                  />,
-                ]}
-                onSave={(original, draft) => setSavedData((current) => ({ ...current, cards: current.cards.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
-                onDelete={(item) => setSavedData((current) => ({ ...current, cards: current.cards.filter((row) => row.id !== item.id) }))}
-              />
+              {cardsOpen && (
+                <EditableTable<Card>
+                  columns={["카드명", "카드사", "결제계좌"]}
+                  columnWidths={[undefined, "10rem", undefined]}
+                  items={data.cards}
+                  emptyMessage="카드를 추가하면 흐름도에 노드가 표시됩니다."
+                  displayCells={(item) => {
+                    const matched = data.accounts.find((account) => account.id === item.settlementAccountId);
+                    const settle = matched
+                      ? `${getBrand(matched.bank, matched.type === "투자계좌" ? "sec" : "bank")?.name ?? matched.bank} ${matched.name}`.trim()
+                      : item.settlementAccount || "-";
+                    return [
+                      <span className="text-sm">{item.name || "-"}</span>,
+                      <BrandLabel brand={item.issuer} hint="card" size={24} />,
+                      <span className="text-sm">{settle}</span>,
+                    ];
+                  }}
+                  editCells={(draft, setDraft) => [
+                    <Text value={draft.name} onChange={(value) => setDraft({ ...draft, name: value })} />,
+                    <BrandField value={draft.issuer} kind="card" onChange={(value) => setDraft({ ...draft, issuer: value })} />,
+                    <SettlementAccountSelect
+                      value={draft.settlementAccountId ?? ""}
+                      legacyText={draft.settlementAccount}
+                      accounts={data.accounts}
+                      onChange={(value) => setDraft({ ...draft, settlementAccountId: value, settlementAccount: "" })}
+                    />,
+                  ]}
+                  onSave={(original, draft) => setSavedData((current) => ({ ...current, cards: current.cards.map((row) => (row.id === original.id ? { ...draft, id: original.id } : row)) }))}
+                  onDelete={(item) => setSavedData((current) => ({ ...current, cards: current.cards.filter((row) => row.id !== item.id) }))}
+                />
+              )}
             </div>
           </div>
         </Section>
