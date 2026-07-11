@@ -478,7 +478,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             />
           </div>
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${includedFixed.length}/${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
-          <Metric title="가처분소득" value={won(disposableIncome)} detail={`총 수입 ${won(totalIncome)} - 총 고정지출 ${won(totalFixed)}`} icon={<Wallet size={16} />} accent="indigo" />
+          <Metric title="가처분소득" value={won(disposableIncome)} detail="총 수입 - 총 고정지출" icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
         <Section title="포트폴리오">
