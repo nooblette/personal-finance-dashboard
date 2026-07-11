@@ -248,7 +248,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
     ? Math.round(variableByMonth.reduce((sum, item) => sum + item.amount, 0) / variableByMonth.length)
     : 0;
   const variableMonthlyMax = variableByMonth.reduce((max, item) => Math.max(max, item.amount), 0);
-  const disposableIncome = totalIncome - totalFixed - variableMonthlyAverage;
+  const disposableIncome = totalIncome - totalFixed;
 
   const categoryStats = useMemo(() => {
     const cats = data.expenseCategories;
@@ -478,7 +478,7 @@ function Dashboard({ initialData, onChange, onSignOut }: DashboardProps) {
             />
           </div>
           <Metric title="총 고정 지출" value={won(totalFixed)} detail={`${includedFixed.length}/${data.fixedExpenses.length}개 항목`} icon={<ArrowDownRight size={16} />} accent="rose" />
-          <Metric title="가처분소득" value={won(disposableIncome)} detail={variableMonthlyAverage > 0 ? `변동 지출 월평균 ${won(variableMonthlyAverage)} 차감` : "변동 지출 없음"} icon={<Wallet size={16} />} accent="indigo" />
+          <Metric title="가처분소득" value={won(disposableIncome)} detail={`총 수입 ${won(totalIncome)} - 총 고정지출 ${won(totalFixed)}`} icon={<Wallet size={16} />} accent="indigo" />
         </section>
 
         <Section title="포트폴리오">
